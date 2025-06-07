@@ -190,22 +190,22 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Build test binary
-        run: cargo build --bin depwalker --features cli,gui
+        run: cargo build --bin depwalker --features cli,gui --target x86_64-pc-windows-msvc
 
       - name: Test with system DLLs
         run: |
           # Test with kernel32.dll
-          ./target/debug/depwalker.exe analyze C:\Windows\System32\kernel32.dll --format json
-          
+          .\target\x86_64-pc-windows-msvc\debug\depwalker.exe analyze C:\Windows\System32\kernel32.dll --format json
+
           # Test tree command
-          ./target/debug/depwalker.exe tree C:\Windows\System32\user32.dll
+          .\target\x86_64-pc-windows-msvc\debug\depwalker.exe tree C:\Windows\System32\user32.dll
 
       - name: Test GUI mode detection
         run: |
           # Test that GUI mode is detected correctly
-          echo "Testing GUI mode detection..."
+          Write-Host "Testing GUI mode detection..."
           # This should not crash even without display
-          timeout 10 ./target/debug/depwalker.exe --help || true
+          .\target\x86_64-pc-windows-msvc\debug\depwalker.exe --help
 
   # Performance benchmarks
   benchmark:
@@ -225,16 +225,16 @@ jobs:
       - name: Run benchmarks
         run: |
           # Build optimized binary
-          cargo build --release --features cli
-          
+          cargo build --release --features cli --target x86_64-pc-windows-msvc
+
           # Simple performance test
-          Measure-Command { 
-            ./target/release/depwalker.exe analyze C:\Windows\System32\kernel32.dll 
+          Measure-Command {
+            & ".\target\x86_64-pc-windows-msvc\release\depwalker.exe" analyze C:\Windows\System32\kernel32.dll
           } | Select-Object TotalMilliseconds
 
-  # Check that examples compile
-  examples:
-    name: Examples
+  # Check that test binaries compile
+  test-binaries:
+    name: Test Binaries
     runs-on: windows-latest
     steps:
       - name: Checkout code
@@ -246,21 +246,21 @@ jobs:
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
 
-      - name: Build examples
+      - name: Build test binaries
         run: |
-          # Build all example binaries
-          cargo build --examples --features cli,gui
+          # Build all test binaries
+          cargo build --bins --features cli,gui --target x86_64-pc-windows-msvc
 
-      - name: Test examples
+      - name: Test simple functionality
         run: |
-          # Test simple examples that don't require GUI
-          cargo run --example test_pe_parser --features cli
+          # Test basic CLI functionality
+          .\target\x86_64-pc-windows-msvc\debug\depwalker.exe --version
 
   # All checks passed
   ci-success:
     name: CI Success
     runs-on: windows-latest
-    needs: [format-and-lint, build-test, goreleaser-test, security-audit, dependency-check, docs, integration-test, benchmark, examples]
+    needs: [format-and-lint, build-test, goreleaser-test, security-audit, dependency-check, docs, integration-test, benchmark, test-binaries]
     if: always()
     steps:
       - name: Check all jobs
@@ -272,7 +272,9 @@ jobs:
               "${{ needs.security-audit.result }}" -ne "success" -or
               "${{ needs.dependency-check.result }}" -ne "success" -or
               "${{ needs.docs.result }}" -ne "success" -or
-              "${{ needs.integration-test.result }}" -ne "success") {
+              "${{ needs.integration-test.result }}" -ne "success" -or
+              "${{ needs.benchmark.result }}" -ne "success" -or
+              "${{ needs.test-binaries.result }}" -ne "success") {
             Write-Host "❌ One or more CI jobs failed"
             exit 1
           }

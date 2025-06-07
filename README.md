@@ -116,6 +116,38 @@ dependencywalker_rs/
 
 Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details.
 
+### Conventional Commits
+
+This project uses [Conventional Commits](https://www.conventionalcommits.org/) for automatic version management and changelog generation.
+
+**Commit Message Format:**
+```
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+**Types:**
+- `feat:` - New feature (minor version bump)
+- `fix:` - Bug fix (patch version bump)
+- `feat!:` or `BREAKING CHANGE:` - Breaking change (major version bump)
+- `docs:`, `style:`, `refactor:`, `perf:`, `test:`, `build:`, `ci:`, `chore:`
+
+**Examples:**
+```bash
+feat: add drag and drop support for PE files
+fix: resolve memory leak in dependency analysis
+feat!: change CLI argument structure
+docs: update installation instructions
+```
+
+**Setup commit template:**
+```bash
+git config commit.template .gitmessage
+```
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

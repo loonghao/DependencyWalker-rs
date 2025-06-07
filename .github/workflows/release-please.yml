@@ -1,0 +1,105 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      version: ${{ steps.release.outputs.version }}
+      pr_created: ${{ steps.release.outputs.pr_created }}
+      pr_number: ${{ steps.release.outputs.pr_number }}
+    steps:
+      - name: Run Release Please
+        id: release
+        uses: googleapis/release-please-action@v4
+        with:
+          config-file: .release-please-config.json
+          manifest-file: .release-please-manifest.json
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Show Release Please outputs
+        run: |
+          echo "Release created: ${{ steps.release.outputs.release_created }}"
+          echo "Tag name: ${{ steps.release.outputs.tag_name }}"
+          echo "Version: ${{ steps.release.outputs.version }}"
+          echo "PR created: ${{ steps.release.outputs.pr_created }}"
+          echo "PR number: ${{ steps.release.outputs.pr_number }}"
+
+  # Build and release when a release is created
+  build-and-release:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: x86_64-pc-windows-msvc,i686-pc-windows-msvc
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update release with GoReleaser assets
+        run: |
+          echo "Release ${{ needs.release-please.outputs.tag_name }} completed with GoReleaser assets"
+
+  # Notify about PR creation
+  notify-pr:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.pr_created }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: ${{ needs.release-please.outputs.pr_number }},
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🚀 **Release Please PR Created**
+              
+              This PR was automatically created by Release Please based on conventional commits.
+              
+              **What this PR does:**
+              - Updates version in \`Cargo.toml\`
+              - Updates \`CHANGELOG.md\` with new changes
+              - Prepares for release when merged
+              
+              **Next steps:**
+              1. Review the changes
+              2. Merge this PR to trigger the release
+              3. GoReleaser will automatically build and publish the release
+              
+              **Conventional Commit Types:**
+              - \`feat:\` → Minor version bump (0.1.0 → 0.2.0)
+              - \`fix:\` → Patch version bump (0.1.0 → 0.1.1)  
+              - \`feat!:\` or \`BREAKING CHANGE:\` → Major version bump (0.1.0 → 1.0.0)
+              `
+            });

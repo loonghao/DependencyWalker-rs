@@ -430,16 +430,16 @@ impl<'a> PEFile<'a> {
         }
 
         // Fallback to goblin (less detailed but still useful)
-        if let Some(pe) = &self.goblin_pe {
+        if let Some(_pe) = &self.goblin_pe {
             // Goblin's import structure is different, let's use a simplified approach
             // Group imports by DLL name from the existing get_imports method
             let simple_imports = self.get_imports()?;
             for (dll_name, symbol_names) in simple_imports {
                 let mut imports = Vec::new();
                 for symbol_name in symbol_names {
-                    if symbol_name.starts_with('#') {
+                    if let Some(stripped) = symbol_name.strip_prefix('#') {
                         // This is an ordinal import
-                        if let Ok(ordinal) = symbol_name[1..].parse::<u16>() {
+                        if let Ok(ordinal) = stripped.parse::<u16>() {
                             imports.push(ImportInfo::by_ordinal(ordinal));
                         }
                     } else {

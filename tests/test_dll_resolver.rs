@@ -3,7 +3,7 @@
 //! This example shows how to use the DLL resolver to find DLLs using Windows search paths.
 
 use dependencywalker_rs::core::pe_parser::{PEFile, PEFileMap};
-use dependencywalker_rs::core::{DllResolver, DllResolverConfig, ModuleSearchStrategy};
+use dependencywalker_rs::core::{DllResolver, DllResolverConfig};
 use std::path::PathBuf;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -124,6 +124,7 @@ fn test_different_configurations() -> Result<(), Box<dyn std::error::Error>> {
         working_directory: None,
         enable_wow64_redirection: false,
         enable_known_dlls: false,
+        enable_api_set_schema: false,
     };
 
     let mut resolver1 = DllResolver::with_config(config1);
@@ -147,6 +148,7 @@ fn test_different_configurations() -> Result<(), Box<dyn std::error::Error>> {
         working_directory: None,
         enable_wow64_redirection: true,
         enable_known_dlls: false,
+        enable_api_set_schema: true,
     };
 
     let mut resolver2 = DllResolver::with_config(config2);
@@ -173,6 +175,7 @@ fn test_different_configurations() -> Result<(), Box<dyn std::error::Error>> {
         working_directory: Some(PathBuf::from("C:\\Windows\\System32")),
         enable_wow64_redirection: true,
         enable_known_dlls: true,
+        enable_api_set_schema: true,
     };
 
     let resolver3 = DllResolver::with_config(config3);

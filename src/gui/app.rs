@@ -851,13 +851,10 @@ impl DependencyWalkerApp {
                 ));
             }
 
-            match status {
-                iced::widget::button::Status::Hovered => {
-                    style.background = Some(iced::Background::Color(
-                        theme.extended_palette().background.weak.color,
-                    ));
-                }
-                _ => {}
+            if status == iced::widget::button::Status::Hovered {
+                style.background = Some(iced::Background::Color(
+                    theme.extended_palette().background.weak.color,
+                ));
             }
 
             style
@@ -949,7 +946,7 @@ fn convert_dependency_node_to_info(node: &DependencyNode) -> Vec<DependencyInfo>
     let children = node
         .children
         .iter()
-        .flat_map(|child| convert_dependency_node_to_info(child))
+        .flat_map(convert_dependency_node_to_info)
         .collect();
 
     result.push(DependencyInfo {

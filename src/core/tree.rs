@@ -132,7 +132,7 @@ impl<'a> TreeIterator<'a> {
         nodes: &mut Vec<&'a DependencyNode>,
         filter: &Option<NodeFilter>,
     ) {
-        if filter.as_ref().map_or(true, |f| f.matches(node)) {
+        if filter.as_ref().is_none_or(|f| f.matches(node)) {
             nodes.push(node);
         }
 
@@ -150,7 +150,7 @@ impl<'a> TreeIterator<'a> {
             Self::collect_post_order(child, nodes, filter);
         }
 
-        if filter.as_ref().map_or(true, |f| f.matches(node)) {
+        if filter.as_ref().is_none_or(|f| f.matches(node)) {
             nodes.push(node);
         }
     }
@@ -164,7 +164,7 @@ impl<'a> TreeIterator<'a> {
         queue.push_back(root);
 
         while let Some(node) = queue.pop_front() {
-            if filter.as_ref().map_or(true, |f| f.matches(node)) {
+            if filter.as_ref().is_none_or(|f| f.matches(node)) {
                 nodes.push(node);
             }
 
@@ -225,7 +225,7 @@ impl DependencyTree {
     pub fn get_path_to_node(&self, target_path: &Path) -> Option<Vec<&DependencyNode>> {
         if let Some(root) = &self.root {
             let mut path = Vec::new();
-            if self.find_path_recursive(root, target_path, &mut path) {
+            if Self::find_path_recursive(root, target_path, &mut path) {
                 return Some(path);
             }
         }
@@ -233,7 +233,6 @@ impl DependencyTree {
     }
 
     fn find_path_recursive<'a>(
-        &self,
         node: &'a DependencyNode,
         target: &Path,
         path: &mut Vec<&'a DependencyNode>,
@@ -245,7 +244,7 @@ impl DependencyTree {
         }
 
         for child in &node.children {
-            if self.find_path_recursive(child, target, path) {
+            if Self::find_path_recursive(child, target, path) {
                 return true;
             }
         }

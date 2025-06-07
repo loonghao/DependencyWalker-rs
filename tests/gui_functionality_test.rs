@@ -5,7 +5,7 @@
 #[cfg(test)]
 mod tests {
     use dependencywalker_rs::gui::message::{AnalysisResult, DependencyInfo, DependencyStatus};
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
 
     #[test]
     fn test_file_validation() {
@@ -183,7 +183,7 @@ mod tests {
         // Since message types are mainly used for ICED framework, we test their basic structure
 
         let test_path = PathBuf::from("test.exe");
-        let test_paths = vec![PathBuf::from("file1.dll"), PathBuf::from("file2.dll")];
+        let test_paths = [PathBuf::from("file1.dll"), PathBuf::from("file2.dll")];
 
         // Verify path handling
         assert!(test_path.extension().is_some());
@@ -194,7 +194,7 @@ mod tests {
 
     // Helper functions
 
-    fn is_valid_pe_file(path: &PathBuf) -> bool {
+    fn is_valid_pe_file(path: &Path) -> bool {
         match path.extension().and_then(|s| s.to_str()) {
             Some(ext) => matches!(
                 ext.to_lowercase().as_str(),
@@ -250,7 +250,7 @@ mod tests {
 
 #[cfg(test)]
 mod integration_tests {
-    use super::*;
+
     use dependencywalker_rs::core::dependency::DependencyAnalyzer;
     use std::path::PathBuf;
 

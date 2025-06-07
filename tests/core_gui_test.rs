@@ -4,12 +4,13 @@
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
     use std::time::Duration;
 
     // 模拟GUI消息类型（不依赖ICED）
     #[derive(Debug, Clone)]
     pub struct AnalysisResult {
+        #[allow(dead_code)]
         pub file_path: PathBuf,
         pub dependencies: Vec<DependencyInfo>,
         pub analysis_time: Duration,
@@ -18,6 +19,7 @@ mod tests {
     #[derive(Debug, Clone)]
     pub struct DependencyInfo {
         pub name: String,
+        #[allow(dead_code)]
         pub path: Option<PathBuf>,
         pub status: DependencyStatus,
         pub children: Vec<DependencyInfo>,
@@ -256,7 +258,7 @@ mod tests {
 
     // Helper functions
 
-    fn is_valid_pe_file(path: &PathBuf) -> bool {
+    fn is_valid_pe_file(path: &Path) -> bool {
         match path.extension().and_then(|s| s.to_str()) {
             Some(ext) => matches!(
                 ext.to_lowercase().as_str(),
@@ -292,21 +294,22 @@ mod tests {
     }
 
     fn create_nested_dependency(depth: usize) -> DependencyInfo {
-        if depth == 0 {
-            return DependencyInfo {
-                name: format!("level_{}.dll", depth),
-                path: Some(PathBuf::from(format!("C:\\test\\level_{}.dll", depth))),
-                status: DependencyStatus::Found,
-                children: vec![],
+        fn create_level(current_level: usize, max_depth: usize) -> DependencyInfo {
+            let children = if current_level < max_depth {
+                vec![create_level(current_level + 1, max_depth)]
+            } else {
+                vec![]
             };
+
+            DependencyInfo {
+                name: format!("level_{}.dll", current_level),
+                path: Some(PathBuf::from(format!("C:\\test\\level_{}.dll", current_level))),
+                status: DependencyStatus::Found,
+                children,
+            }
         }
 
-        DependencyInfo {
-            name: format!("level_{}.dll", depth),
-            path: Some(PathBuf::from(format!("C:\\test\\level_{}.dll", depth))),
-            status: DependencyStatus::Found,
-            children: vec![create_nested_dependency(depth - 1)],
-        }
+        create_level(0, depth)
     }
 
     fn create_sample_tree() -> DependencyInfo {
@@ -349,7 +352,7 @@ mod tests {
         result
     }
 
-    fn simulate_file_drop(path: &PathBuf) -> bool {
+    fn simulate_file_drop(path: &Path) -> bool {
         // 模拟GUI的文件拖拽处理逻辑
         is_valid_pe_file(path)
     }

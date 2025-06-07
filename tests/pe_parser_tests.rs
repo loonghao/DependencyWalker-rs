@@ -169,7 +169,7 @@ fn test_real_dll_parsing() {
                 info.path.file_name().unwrap().to_str().unwrap(),
                 "liblzma.dll"
             );
-            assert!(info.dependencies.len() > 0);
+            assert!(!info.dependencies.is_empty());
         }
         Err(e) => println!("Failed to get PE info: {:?}", e),
     }

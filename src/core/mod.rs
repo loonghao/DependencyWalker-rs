@@ -19,7 +19,6 @@ pub mod resolver;
 
 /// Symbol analysis and resolution
 pub mod symbols {
-    //! Import/export symbol analysis
 
     use crate::error::Result;
 

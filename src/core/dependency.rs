@@ -379,7 +379,7 @@ impl DependencyAnalyzer {
             dep_info.reference_count += 1;
 
             // Recursively build child node if not already visited at this depth
-            if !visited.contains(actual_dep_path) || depth + 1 <= 3 {
+            if !visited.contains(actual_dep_path) || depth < 3 {
                 visited.insert(actual_dep_path.clone());
 
                 match self.build_node(actual_dep_path, depth + 1, visited, processing_stack, tree) {
@@ -439,13 +439,12 @@ impl DependencyAnalyzer {
             let mut rec_stack = HashSet::new();
             let mut current_path = Vec::new();
 
-            self.dfs_detect_cycles(&root, &mut visited, &mut rec_stack, &mut current_path, tree);
+            Self::dfs_detect_cycles(&root, &mut visited, &mut rec_stack, &mut current_path, tree);
         }
     }
 
     /// DFS helper for cycle detection
     fn dfs_detect_cycles(
-        &self,
         node: &DependencyNode,
         visited: &mut HashSet<PathBuf>,
         rec_stack: &mut HashSet<PathBuf>,
@@ -458,7 +457,7 @@ impl DependencyAnalyzer {
 
         for child in &node.children {
             if !visited.contains(&child.path) {
-                self.dfs_detect_cycles(child, visited, rec_stack, current_path, tree);
+                Self::dfs_detect_cycles(child, visited, rec_stack, current_path, tree);
             } else if rec_stack.contains(&child.path) {
                 // Found a cycle - extract the cycle path
                 if let Some(cycle_start) = current_path.iter().position(|p| p == &child.path) {

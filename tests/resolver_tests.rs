@@ -26,7 +26,7 @@ fn test_dll_resolver_with_config() {
     };
 
     let resolver = DllResolver::with_config(config.clone());
-    assert_eq!(resolver.config().include_system_dlls, false);
+    assert!(!resolver.config().include_system_dlls);
     assert_eq!(resolver.config().custom_search_paths.len(), 1);
     assert_eq!(
         resolver.config().working_directory,

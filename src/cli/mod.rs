@@ -2,7 +2,6 @@
 
 /// Command implementations
 pub mod commands {
-    //! CLI command implementations
 
     use super::output::{DependencyInfo, Format, OutputData};
     use crate::core::{DependencyAnalyzer, PEFile, PEFileMap};
@@ -247,7 +246,6 @@ pub mod commands {
 
 /// Output formatting utilities
 pub mod output {
-    //! Output formatting for different formats
 
     use serde::{Deserialize, Serialize};
 
@@ -487,7 +485,6 @@ pub mod output {
 
 /// Configuration management
 pub mod config {
-    //! Configuration file support for CLI
 
     use crate::error::Result;
     use serde::{Deserialize, Serialize};
@@ -571,7 +568,6 @@ pub mod config {
 
 /// Progress reporting utilities
 pub mod progress {
-    //! Progress reporting for long-running operations
 
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::Arc;

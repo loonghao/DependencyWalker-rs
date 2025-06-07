@@ -13,6 +13,7 @@ use std::rc::Rc;
 slint::include_modules!();
 
 /// Slint application wrapper
+#[allow(dead_code)]
 pub struct SlintApp {
     /// The main Slint window
     window: MainWindow,
@@ -46,6 +47,7 @@ struct DependencyItemData {
 
 /// Dependency status for Slint
 #[derive(Debug, Clone, Copy)]
+#[allow(dead_code)]
 enum DependencyStatusData {
     Found,
     Missing,
@@ -69,6 +71,7 @@ struct ModuleInfoData {
 
 /// Function information for Slint
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 struct FunctionInfoData {
     pub name: String,
     pub ordinal: String,
@@ -526,7 +529,7 @@ impl SlintApp {
         let children = node
             .children
             .iter()
-            .map(|child| Self::convert_dependency_node(child))
+            .map(Self::convert_dependency_node)
             .collect();
 
         DependencyItemData {
@@ -606,6 +609,7 @@ impl SlintApp {
     }
 
     /// Convert internal dependency item to Slint DependencyItem
+    #[allow(dead_code)]
     fn convert_to_slint_dependency_item(dep: &DependencyItemData) -> DependencyItem {
         let status = match dep.status {
             DependencyStatusData::Found => DependencyStatus::Found,
@@ -890,7 +894,7 @@ impl SlintApp {
     }
 
     /// Handle dependency expansion
-    fn handle_dependency_expanded(window: MainWindow, dependency_name: String) {
+    fn handle_dependency_expanded(_window: MainWindow, dependency_name: String) {
         log::info!("Dependency expanded: {}", dependency_name);
 
         // TODO: Implement dependency expansion logic
@@ -914,7 +918,7 @@ impl SlintApp {
     }
 
     /// Handle expand all
-    fn handle_expand_all(window: MainWindow) {
+    fn handle_expand_all(_window: MainWindow) {
         log::info!("Expand all requested");
 
         // TODO: Implement expand all logic
@@ -922,7 +926,7 @@ impl SlintApp {
     }
 
     /// Handle collapse all
-    fn handle_collapse_all(window: MainWindow) {
+    fn handle_collapse_all(_window: MainWindow) {
         log::info!("Collapse all requested");
 
         // TODO: Implement collapse all logic
@@ -930,7 +934,7 @@ impl SlintApp {
     }
 
     /// Handle theme toggle
-    fn handle_toggle_theme(window: MainWindow) {
+    fn handle_toggle_theme(_window: MainWindow) {
         log::info!("Theme toggle requested");
 
         // TODO: Implement theme switching logic

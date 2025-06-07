@@ -31,8 +31,8 @@ fn test_dependency_node_creation() {
 
     assert_eq!(node.name, "test.dll");
     assert_eq!(node.depth, 0);
-    assert_eq!(node.found, false);
-    assert_eq!(node.is_circular, false);
+    assert!(!node.found);
+    assert!(!node.is_circular);
     assert!(node.dependencies.is_empty());
     assert!(node.children.is_empty());
     assert!(node.errors.is_empty());

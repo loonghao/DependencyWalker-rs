@@ -1,0 +1,223 @@
+// Welcome screen with drag & drop support for DependencyWalker RS
+import { Theme, FileTypes, ModernButton, ModernContainer } from "../styles/theme.slint";
+
+export component WelcomeScreen inherits Rectangle {
+    // Properties
+    in-out property <bool> is-dragging: false;
+    in property <string> error-message: "";
+    in-out property <bool> file-dialog-open: false;
+
+    // Callbacks
+    callback file-dropped(string);
+    callback browse-files();
+
+    background: Theme.background-primary;
+
+    // Main container with proper centering
+    VerticalLayout {
+        width: 100%;
+        height: 100%;
+        padding: Theme.spacing-large;
+        spacing: Theme.spacing-medium;
+        alignment: center;
+        
+        // Title section
+        VerticalLayout {
+            spacing: Theme.spacing-small;
+            alignment: center;
+            
+            Text {
+                text: "DependencyWalker RS";
+                font-size: Theme.font-display;
+                color: Theme.primary;
+                font-weight: 700;
+                horizontal-alignment: center;
+            }
+            
+            Text {
+                text: "Modern Windows & Maya Plugin Dependency Analyzer";
+                font-size: Theme.font-heading;
+                color: Theme.text-secondary;
+                horizontal-alignment: center;
+            }
+        }
+        
+        // Spacer
+        Rectangle { height: Theme.spacing-extra-large; }
+        
+        // Drop zone with drag & drop support - responsive sizing
+        ModernContainer {
+            width: min(600px, parent.width - 2 * Theme.spacing-large);
+            height: min(300px, parent.height * 0.4);
+            background-color: root.is-dragging ? Theme.primary.with-alpha(0.1) : Theme.background-secondary;
+            border-color: root.is-dragging ? Theme.primary : Theme.border;
+            border-width: root.is-dragging ? 3px : 2px;
+
+            // TouchArea for handling drag and drop events
+            drop-area := TouchArea {
+                width: 100%;
+                height: 100%;
+                mouse-cursor: pointer;
+
+                // Visual feedback on hover and drag
+                Rectangle {
+                    width: 100%;
+                    height: 100%;
+                    background: drop-area.has-hover || root.is-dragging ? Theme.primary.with-alpha(0.05) : transparent;
+                    border-radius: Theme.radius-medium;
+                }
+            }
+            
+            VerticalLayout {
+                padding: Theme.spacing-massive;
+                spacing: Theme.spacing-large;
+                alignment: center;
+
+                // File type icons row
+                HorizontalLayout {
+                    spacing: Theme.spacing-large;
+                    alignment: center;
+
+                    Text {
+                        text: FileTypes.get-icon("exe");
+                        font-size: Theme.font-display;
+                        color: FileTypes.get-color("exe");
+                    }
+
+                    Text {
+                        text: FileTypes.get-icon("dll");
+                        font-size: Theme.font-display;
+                        color: FileTypes.get-color("dll");
+                    }
+
+                    Text {
+                        text: FileTypes.get-icon("sys");
+                        font-size: Theme.font-display;
+                        color: FileTypes.get-color("sys");
+                    }
+
+                    Text {
+                        text: FileTypes.get-icon("ocx");
+                        font-size: Theme.font-display;
+                        color: FileTypes.get-color("ocx");
+                    }
+
+                    Text {
+                        text: FileTypes.get-icon("mll");
+                        font-size: Theme.font-display;
+                        color: FileTypes.get-color("mll");
+                    }
+                }
+
+                Text {
+                    text: "Drag & Drop files here";
+                    font-size: Theme.font-heading;
+                    color: Theme.text-primary;
+                    horizontal-alignment: center;
+                }
+
+                Text {
+                    text: "or";
+                    font-size: Theme.font-medium;
+                    color: Theme.text-muted;
+                    horizontal-alignment: center;
+                }
+
+                // Button with its own TouchArea to ensure click events work
+                Rectangle {
+                    width: 200px;
+                    height: 40px;
+
+                    ModernButton {
+                        width: 100%;
+                        height: 100%;
+                        text: root.file-dialog-open ? "Opening..." : "📂 Browse Files";
+                        button-enabled: !root.file-dialog-open;
+                        clicked => {
+                            if (!root.file-dialog-open) {
+                                root.file-dialog-open = true;
+                                root.browse-files();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Spacer
+        Rectangle { height: Theme.spacing-large; }
+        
+        // Supported formats
+        VerticalLayout {
+            spacing: Theme.spacing-small;
+            alignment: center;
+            
+            Text {
+                text: "Supported Formats:";
+                font-size: Theme.font-medium;
+                color: Theme.text-secondary;
+                horizontal-alignment: center;
+            }
+            
+            HorizontalLayout {
+                spacing: Theme.spacing-large;
+                alignment: center;
+                
+                Text {
+                    text: "▶ .exe";
+                    font-size: Theme.font-small;
+                    color: FileTypes.get-color("exe");
+                }
+                
+                Text {
+                    text: "⚙ .dll";
+                    font-size: Theme.font-small;
+                    color: FileTypes.get-color("dll");
+                }
+                
+                Text {
+                    text: "⚡ .sys";
+                    font-size: Theme.font-small;
+                    color: FileTypes.get-color("sys");
+                }
+                
+                Text {
+                    text: "◆ .ocx";
+                    font-size: Theme.font-small;
+                    color: FileTypes.get-color("ocx");
+                }
+                
+                Text {
+                    text: "★ .mll";
+                    font-size: Theme.font-small;
+                    color: FileTypes.get-color("mll");
+                }
+            }
+            
+            Text {
+                text: "Maya Plugin Libraries (.mll) fully supported!";
+                font-size: Theme.font-caption;
+                color: Theme.mll-plugin;
+                horizontal-alignment: center;
+            }
+        }
+        
+        // Error message (if any)
+        if root.error-message != "" : Rectangle {
+            width: 100%;
+            height: 40px;
+            background: Theme.error.with-alpha(0.1);
+            border-radius: Theme.radius-medium;
+            border-width: 1px;
+            border-color: Theme.error;
+            
+            Text {
+                text: "Error: " + root.error-message;
+                color: Theme.error;
+                font-size: Theme.font-body;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+    }
+}

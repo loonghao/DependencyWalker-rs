@@ -1,0 +1,150 @@
+# GoReleaser configuration for DependencyWalker RS
+# Unified Windows executable with CLI and GUI modes
+
+project_name: dependencywalker-rs
+
+before:
+  hooks:
+    # Set specific Rust toolchain version for consistency
+    - rustup override set 1.82.0
+    # Verify Rust version
+    - rustc --version
+    # Add Windows targets for the specific toolchain
+    - rustup target add x86_64-pc-windows-msvc --toolchain 1.82.0
+    - rustup target add i686-pc-windows-msvc --toolchain 1.82.0
+    # Verify dependency versions
+    - cargo tree --depth 1
+
+builds:
+  # Unified Binary (CLI + GUI)
+  - id: depwalker-unified
+    binary: depwalker
+    main: ./src/main.rs
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - windows
+    goarch:
+      - amd64
+      - 386
+    hooks:
+      pre:
+        - rustup run 1.82.0 cargo build --release --bin depwalker --target {{ if eq .Arch "amd64" }}x86_64-pc-windows-msvc{{ else }}i686-pc-windows-msvc{{ end }}
+      post:
+        - cp target/{{ if eq .Arch "amd64" }}x86_64-pc-windows-msvc{{ else }}i686-pc-windows-msvc{{ end }}/release/depwalker.exe {{ .Path }}
+
+archives:
+  - id: unified-archive
+    builds:
+      - depwalker-unified
+    name_template: "{{ .ProjectName }}-{{ .Version }}-{{ .Os }}-{{ .Arch }}"
+    format: zip
+    files:
+      - README.md
+      - LICENSE
+      - CHANGELOG.md
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+      - "^chore:"
+      - "^style:"
+  groups:
+    - title: Features
+      regexp: "^.*feat[(\\w)]*:+.*$"
+      order: 0
+    - title: "Bug fixes"
+      regexp: "^.*fix[(\\w)]*:+.*$"
+      order: 1
+    - title: Others
+      order: 999
+
+release:
+  github:
+    owner: loonghao
+    name: DependencyWalker-rs
+  draft: false
+  prerelease: auto
+  mode: replace
+  header: |
+    ## DependencyWalker RS {{ .Tag }}
+
+    A modern Windows Dependency Walker implemented in Rust with unified CLI and GUI interface.
+
+    ### Downloads
+
+    - **Windows x64**: `dependencywalker-rs-{{ .Version }}-windows-amd64.zip`
+    - **Windows x86**: `dependencywalker-rs-{{ .Version }}-windows-386.zip`
+
+    ### Features
+
+    - 🔍 **Deep Analysis**: Comprehensive dependency analysis with configurable depth
+    - 🌳 **Tree Visualization**: Interactive dependency tree with missing dependency highlighting
+    - 📊 **Multiple Formats**: Export results in Text, JSON, or XML formats
+    - ⚡ **Zero Dependencies**: Single executable with no external dependencies
+    - 🖥️ **Modern GUI**: Cross-platform GUI built with Dioxus
+    - 💻 **Powerful CLI**: Full-featured command-line interface
+    - 🎯 **Smart Mode Detection**: Automatically switches between CLI and GUI modes
+    
+  footer: |
+    **Full Changelog**: https://github.com/loonghao/DependencyWalker-rs/compare/{{ .PreviousTag }}...{{ .Tag }}
+    
+    ---
+    
+    ### Installation
+    
+    1. Download the appropriate archive for your system
+    2. Extract the files to a directory of your choice
+    3. Add the directory to your PATH (optional)
+    4. Run `depwalker.exe` for CLI or `depwalker-gui.exe` for GUI
+    
+    ### Usage Examples
+
+    ```bash
+    # CLI Mode (with arguments)
+    depwalker.exe analyze example.exe
+    depwalker.exe tree example.exe --missing
+    depwalker.exe list example.exe --detailed
+
+    # GUI Mode (no arguments or --gui flag)
+    depwalker.exe
+    depwalker.exe --gui
+    ```
+
+# Windows-specific configuration
+nfpms:
+  - id: windows-installer
+    package_name: dependencywalker-rs
+    vendor: DependencyWalker RS Team
+    homepage: https://github.com/loonghao/DependencyWalker-rs
+    maintainer: DependencyWalker RS Team
+    description: A modern Windows Dependency Walker implemented in Rust
+    license: MIT
+    formats:
+      - zip
+
+# Disable features not needed for Windows-only releases
+dockers:
+  - skip_push: true
+
+brews:
+  - skip_upload: true
+
+scoops:
+  - repository:
+      owner: loonghao
+      name: scoop-bucket
+    homepage: https://github.com/loonghao/DependencyWalker-rs
+    description: A modern Windows Dependency Walker implemented in Rust
+    license: MIT

@@ -303,7 +303,10 @@ mod tests {
 
             DependencyInfo {
                 name: format!("level_{}.dll", current_level),
-                path: Some(PathBuf::from(format!("C:\\test\\level_{}.dll", current_level))),
+                path: Some(PathBuf::from(format!(
+                    "C:\\test\\level_{}.dll",
+                    current_level
+                ))),
                 status: DependencyStatus::Found,
                 children,
             }

@@ -230,21 +230,25 @@ mod tests {
     }
 
     fn create_nested_dependency(depth: usize) -> DependencyInfo {
-        if depth == 0 {
-            return DependencyInfo {
-                name: format!("level_{}.dll", depth),
-                path: Some(PathBuf::from(format!("C:\\test\\level_{}.dll", depth))),
-                status: DependencyStatus::Found,
-                children: vec![],
+        fn create_level(current_level: usize, max_depth: usize) -> DependencyInfo {
+            let children = if current_level < max_depth {
+                vec![create_level(current_level + 1, max_depth)]
+            } else {
+                vec![]
             };
+
+            DependencyInfo {
+                name: format!("level_{}.dll", current_level),
+                path: Some(PathBuf::from(format!(
+                    "C:\\test\\level_{}.dll",
+                    current_level
+                ))),
+                status: DependencyStatus::Found,
+                children,
+            }
         }
 
-        DependencyInfo {
-            name: format!("level_{}.dll", depth),
-            path: Some(PathBuf::from(format!("C:\\test\\level_{}.dll", depth))),
-            status: DependencyStatus::Found,
-            children: vec![create_nested_dependency(depth - 1)],
-        }
+        create_level(0, depth)
     }
 }
 

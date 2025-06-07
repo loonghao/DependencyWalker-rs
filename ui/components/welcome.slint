@@ -46,6 +46,21 @@ export component WelcomeScreen inherits Rectangle {
         Rectangle { height: Theme.spacing-extra-large; }
         
         // Drop zone with drag & drop support - responsive sizing
+        drop-area := TouchArea {
+            width: 100%;
+            height: 100%;
+            mouse-cursor: pointer;
+        
+            // Visual feedback on hover and drag
+            Rectangle {
+                width: 100%;
+                x: 320px;
+                y: 264px;
+                height: 100%;
+                background: drop-area.has-hover || root.is-dragging ? Theme.primary.with-alpha(0.05) : transparent;
+                border-radius: Theme.radius-medium;
+            }
+        }
         ModernContainer {
             width: min(600px, parent.width - 2 * Theme.spacing-large);
             height: min(300px, parent.height * 0.4);
@@ -54,19 +69,6 @@ export component WelcomeScreen inherits Rectangle {
             border-width: root.is-dragging ? 3px : 2px;
 
             // TouchArea for handling drag and drop events
-            drop-area := TouchArea {
-                width: 100%;
-                height: 100%;
-                mouse-cursor: pointer;
-
-                // Visual feedback on hover and drag
-                Rectangle {
-                    width: 100%;
-                    height: 100%;
-                    background: drop-area.has-hover || root.is-dragging ? Theme.primary.with-alpha(0.05) : transparent;
-                    border-radius: Theme.radius-medium;
-                }
-            }
             
             VerticalLayout {
                 padding: Theme.spacing-massive;

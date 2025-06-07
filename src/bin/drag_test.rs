@@ -1,60 +1,60 @@
-//! 拖拽测试界面 - 模拟GUI拖拽功能
+//! Drag & Drop Test Interface - Simulate GUI drag & drop functionality
 
 use std::env;
 use std::path::Path;
 use std::io::{self, Write};
 
 fn main() {
-    println!("🎯 DependencyWalker RS - 拖拽测试界面");
-    println!("=====================================");
-    println!("✨ 依赖更新完成！Rust 1.87 + 最新依赖版本");
+    println!("🎯 DependencyWalker RS - Drag & Drop Test Interface");
+    println!("==================================================");
+    println!("✨ Dependencies updated! Rust 1.87 + latest dependency versions");
     println!();
-    
+
     let args: Vec<String> = env::args().collect();
-    
+
     if args.len() >= 2 {
-        // 如果有命令行参数，直接分析
+        // If command line arguments provided, analyze directly
         let file_path = &args[1];
         analyze_file(file_path);
     } else {
-        // 交互式模式
+        // Interactive mode
         interactive_mode();
     }
 }
 
 fn interactive_mode() {
-    println!("🖱️  拖拽测试模式");
-    println!("请将DLL/EXE文件拖拽到此窗口，然后按Enter");
-    println!("或者直接输入文件路径:");
+    println!("🖱️  Drag & Drop Test Mode");
+    println!("Please drag DLL/EXE files to this window, then press Enter");
+    println!("Or directly input file path:");
     println!();
-    
+
     loop {
-        print!("📁 请输入文件路径 (或输入 'quit' 退出): ");
+        print!("📁 Please enter file path (or type 'quit' to exit): ");
         io::stdout().flush().unwrap();
-        
+
         let mut input = String::new();
         match io::stdin().read_line(&mut input) {
             Ok(_) => {
                 let input = input.trim();
-                
+
                 if input.is_empty() {
                     continue;
                 }
-                
+
                 if input.to_lowercase() == "quit" || input.to_lowercase() == "exit" {
-                    println!("👋 再见！");
+                    println!("👋 Goodbye!");
                     break;
                 }
-                
-                // 处理拖拽的文件路径（可能包含引号）
+
+                // Handle dragged file path (may contain quotes)
                 let file_path = input.trim_matches('"').trim_matches('\'');
                 analyze_file(file_path);
-                
+
                 println!("\n{}", "=".repeat(50));
-                println!("继续测试其他文件，或输入 'quit' 退出");
+                println!("Continue testing other files, or type 'quit' to exit");
             }
             Err(error) => {
-                println!("❌ 读取输入时出错: {}", error);
+                println!("❌ Error reading input: {}", error);
                 break;
             }
         }
@@ -62,47 +62,47 @@ fn interactive_mode() {
 }
 
 fn analyze_file(file_path: &str) {
-    println!("\n🔍 分析文件: {}", file_path);
+    println!("\n🔍 Analyzing file: {}", file_path);
     println!("{}", "-".repeat(50));
-    
+
     let path = Path::new(file_path);
-    
+
     if !path.exists() {
-        println!("❌ 错误: 文件不存在");
-        println!("💡 提示: 请检查路径是否正确");
+        println!("❌ Error: File does not exist");
+        println!("💡 Tip: Please check if the path is correct");
         return;
     }
-    
+
     if !path.is_file() {
-        println!("❌ 错误: 这不是一个文件");
+        println!("❌ Error: This is not a file");
         return;
     }
-    
-    // 显示基本信息
-    println!("✅ 文件存在且可访问");
-    
+
+    // Display basic information
+    println!("✅ File exists and is accessible");
+
     if let Some(file_name) = path.file_name() {
-        println!("📄 文件名: {}", file_name.to_string_lossy());
+        println!("📄 File name: {}", file_name.to_string_lossy());
     }
-    
+
     if let Some(parent) = path.parent() {
-        println!("📂 所在目录: {}", parent.display());
+        println!("📂 Directory: {}", parent.display());
     }
-    
-    // 文件大小和时间
+
+    // File size and time
     if let Ok(metadata) = path.metadata() {
         let size = metadata.len();
-        println!("📊 文件大小: {} bytes ({:.2} KB)", size, size as f64 / 1024.0);
-        
+        println!("📊 File size: {} bytes ({:.2} KB)", size, size as f64 / 1024.0);
+
         if let Ok(modified) = metadata.modified() {
-            println!("📅 修改时间: {:?}", modified);
+            println!("📅 Modified time: {:?}", modified);
         }
     }
-    
-    // 文件类型检测
+
+    // File type detection
     if let Some(extension) = path.extension() {
         let ext_lower = extension.to_string_lossy().to_lowercase();
-        println!("📋 文件扩展名: .{}", ext_lower);
+        println!("📋 File extension: .{}", ext_lower);
         
         match ext_lower.as_str() {
             "dll" => {
@@ -136,17 +136,17 @@ fn analyze_file(file_path: &str) {
         }
     }
     
-    println!("\n🎯 模拟分析结果:");
-    println!("  🔍 PE文件头: 已解析");
-    println!("  📋 导入表: 已分析");
-    println!("  📤 导出表: 已分析");
-    println!("  🌳 依赖树: 已构建");
-    println!("  ⚠️  缺失依赖: 已检测");
-    
-    println!("\n✨ 拖拽功能测试成功！");
-    println!("💡 在真实的GUI版本中，您将看到:");
-    println!("   • 可视化的依赖树");
-    println!("   • 详细的PE文件信息");
-    println!("   • 交互式的依赖浏览");
-    println!("   • 导出功能");
+    println!("\n🎯 Simulated analysis results:");
+    println!("  🔍 PE file header: Parsed");
+    println!("  📋 Import table: Analyzed");
+    println!("  📤 Export table: Analyzed");
+    println!("  🌳 Dependency tree: Built");
+    println!("  ⚠️  Missing dependencies: Detected");
+
+    println!("\n✨ Drag & drop functionality test successful!");
+    println!("💡 In the real GUI version, you will see:");
+    println!("   • Visual dependency tree");
+    println!("   • Detailed PE file information");
+    println!("   • Interactive dependency browsing");
+    println!("   • Export functionality");
 }

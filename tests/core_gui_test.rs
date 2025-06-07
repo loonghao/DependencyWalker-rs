@@ -44,33 +44,33 @@ mod tests {
 
     #[test]
     fn test_file_validation() {
-        println!("🧪 测试文件类型验证...");
-        
+        println!("🧪 Testing file type validation...");
+
         let valid_files = vec![
             "test.exe",
-            "library.dll", 
+            "library.dll",
             "driver.sys",
             "control.ocx",
         ];
-        
+
         let invalid_files = vec![
             "document.txt",
             "image.png",
             "archive.zip",
             "script.bat",
         ];
-        
+
         for file in valid_files {
             let path = PathBuf::from(file);
-            assert!(is_valid_pe_file(&path), "应该接受PE文件: {}", file);
+            assert!(is_valid_pe_file(&path), "Should accept PE file: {}", file);
         }
-        
+
         for file in invalid_files {
             let path = PathBuf::from(file);
-            assert!(!is_valid_pe_file(&path), "应该拒绝非PE文件: {}", file);
+            assert!(!is_valid_pe_file(&path), "Should reject non-PE file: {}", file);
         }
-        
-        println!("✅ 文件类型验证测试通过");
+
+        println!("✅ File type validation test passed");
     }
 
     #[test]
@@ -158,31 +158,31 @@ mod tests {
 
     #[test]
     fn test_system_dll_detection() {
-        println!("🧪 测试系统DLL检测...");
-        
+        println!("🧪 Testing system DLL detection...");
+
         let system_dlls = vec![
             "kernel32.dll",
-            "user32.dll", 
+            "user32.dll",
             "gdi32.dll",
             "advapi32.dll",
             "shell32.dll",
         ];
-        
+
         let user_dlls = vec![
             "myapp.dll",
             "custom.dll",
             "plugin.dll",
         ];
-        
+
         for dll in system_dlls {
-            assert!(is_system_dll(dll), "应该识别为系统DLL: {}", dll);
+            assert!(is_system_dll(dll), "Should recognize as system DLL: {}", dll);
         }
-        
+
         for dll in user_dlls {
-            assert!(!is_system_dll(dll), "不应该识别为系统DLL: {}", dll);
+            assert!(!is_system_dll(dll), "Should not recognize as system DLL: {}", dll);
         }
-        
-        println!("✅ 系统DLL检测测试通过");
+
+        println!("✅ System DLL detection test passed");
     }
 
     #[test]
@@ -227,9 +227,9 @@ mod tests {
 
     #[test]
     fn test_drag_drop_simulation() {
-        println!("🧪 测试拖拽功能模拟...");
-        
-        // 模拟拖拽不同类型的文件
+        println!("🧪 Testing drag & drop functionality simulation...");
+
+        // Simulate dragging different types of files
         let test_cases = vec![
             ("test.exe", true),
             ("library.dll", true),
@@ -239,19 +239,19 @@ mod tests {
             ("document.txt", false),
             ("image.png", false),
         ];
-        
+
         for (filename, should_accept) in test_cases {
             let path = PathBuf::from(filename);
             let accepted = simulate_file_drop(&path);
-            
-            assert_eq!(accepted, should_accept, 
-                "文件 {} 的拖拽处理结果不正确", filename);
+
+            assert_eq!(accepted, should_accept,
+                "Drag & drop handling result for file {} is incorrect", filename);
         }
-        
-        println!("✅ 拖拽功能模拟测试通过");
+
+        println!("✅ Drag & drop functionality simulation test passed");
     }
 
-    // 辅助函数
+    // Helper functions
 
     fn is_valid_pe_file(path: &PathBuf) -> bool {
         match path.extension().and_then(|s| s.to_str()) {

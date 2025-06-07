@@ -1,9 +1,9 @@
 //! Tests for DLL search path resolver
-//! 
+//!
 //! This module contains tests for the Windows DLL search path resolution functionality.
 
+use dependencywalker_rs::core::pe_parser::{PEFile, PEFileMap};
 use dependencywalker_rs::core::{DllResolver, DllResolverConfig, ModuleSearchStrategy};
-use dependencywalker_rs::core::pe_parser::{PEFileMap, PEFile};
 use std::path::PathBuf;
 
 #[test]
@@ -24,19 +24,25 @@ fn test_dll_resolver_with_config() {
         enable_known_dlls: false,
         enable_api_set_schema: false,
     };
-    
+
     let resolver = DllResolver::with_config(config.clone());
     assert_eq!(resolver.config().include_system_dlls, false);
     assert_eq!(resolver.config().custom_search_paths.len(), 1);
-    assert_eq!(resolver.config().working_directory, Some(PathBuf::from("C:\\work")));
+    assert_eq!(
+        resolver.config().working_directory,
+        Some(PathBuf::from("C:\\work"))
+    );
 }
 
 #[test]
 fn test_add_search_path() {
     let mut resolver = DllResolver::new();
     resolver.add_search_path("C:\\custom\\path");
-    
-    assert!(resolver.config().custom_search_paths.contains(&PathBuf::from("C:\\custom\\path")));
+
+    assert!(resolver
+        .config()
+        .custom_search_paths
+        .contains(&PathBuf::from("C:\\custom\\path")));
 }
 
 #[test]
@@ -45,14 +51,14 @@ fn test_clear_search_paths() {
     resolver.add_search_path("C:\\path1");
     resolver.add_search_path("C:\\path2");
     resolver.clear_search_paths();
-    
+
     assert!(resolver.config().custom_search_paths.is_empty());
 }
 
 #[test]
 fn test_simple_dll_resolution() {
     let mut resolver = DllResolver::new();
-    
+
     // Test resolving a system DLL that should exist
     match resolver.resolve_dll_simple("kernel32.dll") {
         Ok(Some(path)) => {
@@ -74,19 +80,23 @@ fn test_dll_resolution_with_pe_context() {
     // This test requires a real PE file to work with
     // We'll use the test DLL from our test directory
     let test_dll_path = "tests/liblzma.dll";
-    
+
     if std::path::Path::new(test_dll_path).exists() {
         let pe_map = PEFileMap::new(test_dll_path).expect("Failed to load test DLL");
         let pe_file = PEFile::new(&pe_map).expect("Failed to parse test DLL");
-        
+
         let mut resolver = DllResolver::new();
-        
+
         // Test resolving a dependency of the test DLL
         match resolver.resolve_dll(&pe_file, "kernel32.dll") {
             Ok((strategy, Some(path))) => {
                 assert!(path.exists());
                 assert_ne!(strategy, ModuleSearchStrategy::NotFound);
-                println!("Found kernel32.dll via strategy: {:?} at: {}", strategy, path.display());
+                println!(
+                    "Found kernel32.dll via strategy: {:?} at: {}",
+                    strategy,
+                    path.display()
+                );
             }
             Ok((ModuleSearchStrategy::NotFound, None)) => {
                 println!("kernel32.dll not found - this might be expected in test environments");
@@ -106,7 +116,7 @@ fn test_dll_resolution_with_pe_context() {
 #[test]
 fn test_nonexistent_dll_resolution() {
     let mut resolver = DllResolver::new();
-    
+
     match resolver.resolve_dll_simple("nonexistent_dll_12345.dll") {
         Ok(None) => {
             // This is the expected result
@@ -123,13 +133,13 @@ fn test_nonexistent_dll_resolution() {
 #[test]
 fn test_dll_name_normalization() {
     let mut resolver = DllResolver::new();
-    
+
     // Test that DLL names without extension get .dll added
     // We'll test this by checking if the resolution behaves the same
     // for "kernel32" and "kernel32.dll"
     let result1 = resolver.resolve_dll_simple("kernel32");
     let result2 = resolver.resolve_dll_simple("kernel32.dll");
-    
+
     match (result1, result2) {
         (Ok(path1), Ok(path2)) => {
             // Both should resolve to the same result (either both Some or both None)

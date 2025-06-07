@@ -1,13 +1,13 @@
 //! PE file parsing using pelite + goblin dual strategy
-//! 
+//!
 //! This module provides robust PE file parsing by using both pelite and goblin libraries.
 //! It prioritizes pelite for performance and falls back to goblin for robustness.
 
+use crate::core::types::{ExportInfo, ImportInfo};
 use crate::error::{Error, Result};
-use crate::core::types::{ImportInfo, ExportInfo};
 use std::collections::{HashMap, HashSet};
-use std::path::{Path, PathBuf};
 use std::fs;
+use std::path::{Path, PathBuf};
 
 /// PE file memory map for efficient access
 pub struct PEFileMap {
@@ -19,13 +19,13 @@ impl PEFileMap {
     /// Create a new PE file map from path
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
         let path = path.as_ref().to_path_buf();
-        
+
         if !path.exists() {
             return Err(Error::FileNotFound { path });
         }
-        
+
         let content = fs::read(&path)?;
-        
+
         // Basic PE signature check
         if content.len() < 64 {
             return Err(Error::InvalidFormat {
@@ -33,15 +33,15 @@ impl PEFileMap {
                 reason: "File too small to be a valid PE file".to_string(),
             });
         }
-        
+
         Ok(Self { path, content })
     }
-    
+
     /// Get the file path
     pub fn path(&self) -> &Path {
         &self.path
     }
-    
+
     /// Get the file content
     pub fn content(&self) -> &[u8] {
         &self.content
@@ -63,32 +63,46 @@ impl<'a> PEFile<'a> {
             pelite_pe: None,
             goblin_pe: None,
         };
-        
+
         // Try pelite first (preferred for performance)
         match pelite::PeFile::from_bytes(&file_map.content) {
             Ok(pe) => {
-                log::debug!("Successfully parsed with pelite: {}", file_map.path.display());
+                log::debug!(
+                    "Successfully parsed with pelite: {}",
+                    file_map.path.display()
+                );
                 pe_file.pelite_pe = Some(pe);
             }
             Err(e) => {
-                log::warn!("Pelite parsing failed for {}: {:?}", file_map.path.display(), e);
+                log::warn!(
+                    "Pelite parsing failed for {}: {:?}",
+                    file_map.path.display(),
+                    e
+                );
             }
         }
-        
+
         // Try goblin as fallback or additional validation
         match goblin::Object::parse(&file_map.content) {
             Ok(goblin::Object::PE(pe)) => {
-                log::debug!("Successfully parsed with goblin: {}", file_map.path.display());
+                log::debug!(
+                    "Successfully parsed with goblin: {}",
+                    file_map.path.display()
+                );
                 pe_file.goblin_pe = Some(pe);
             }
             Ok(other) => {
                 log::warn!("Unexpected object format: {:?}", other);
             }
             Err(e) => {
-                log::warn!("Goblin parsing failed for {}: {:?}", file_map.path.display(), e);
+                log::warn!(
+                    "Goblin parsing failed for {}: {:?}",
+                    file_map.path.display(),
+                    e
+                );
             }
         }
-        
+
         // Ensure at least one parser succeeded
         if pe_file.pelite_pe.is_none() && pe_file.goblin_pe.is_none() {
             return Err(Error::InvalidFormat {
@@ -96,21 +110,23 @@ impl<'a> PEFile<'a> {
                 reason: "Failed to parse with both pelite and goblin".to_string(),
             });
         }
-        
+
         Ok(pe_file)
     }
-    
+
     /// Create PE file from path (convenience method)
     /// Note: Due to lifetime constraints, use PEFileMap::new() and PEFile::new() separately
     pub fn from_path<P: AsRef<Path>>(_path: P) -> Result<()> {
-        Err(Error::generic("Use PEFileMap::new() and PEFile::new() separately for proper lifetime management"))
+        Err(Error::generic(
+            "Use PEFileMap::new() and PEFile::new() separately for proper lifetime management",
+        ))
     }
-    
+
     /// Get the file path
     pub fn path(&self) -> &Path {
         self.file_map.path()
     }
-    
+
     /// Check if this is a 64-bit PE file
     pub fn is_64bit(&self) -> Result<bool> {
         // Use goblin first as it has simpler API
@@ -143,7 +159,7 @@ impl<'a> PEFile<'a> {
 
         Err(Error::pe_error("No valid PE parser available"))
     }
-    
+
     /// Get the DLL name as specified in the PE file headers
     pub fn get_dll_name(&self) -> Result<Option<String>> {
         // Try pelite first
@@ -160,7 +176,7 @@ impl<'a> PEFile<'a> {
                 Err(e) => log::warn!("Pelite exports error: {:?}", e),
             }
         }
-        
+
         // Try goblin as fallback
         if let Some(pe) = &self.goblin_pe {
             if let Some(export_data) = &pe.export_data {
@@ -169,7 +185,7 @@ impl<'a> PEFile<'a> {
                 }
             }
         }
-        
+
         Ok(None)
     }
 
@@ -222,7 +238,10 @@ impl<'a> PEFile<'a> {
                 // For now, just use a placeholder symbol name
                 let symbol_name = format!("import_{}", imports.len());
 
-                imports.entry(dll_name).or_insert_with(HashSet::new).insert(symbol_name);
+                imports
+                    .entry(dll_name)
+                    .or_insert_with(HashSet::new)
+                    .insert(symbol_name);
             }
 
             if !imports.is_empty() {
@@ -244,12 +263,17 @@ impl<'a> PEFile<'a> {
                                 if let Ok(int) = desc.int() {
                                     for import in int {
                                         match import {
-                                            Ok(pelite::pe32::imports::Import::ByName { name, .. }) => {
+                                            Ok(pelite::pe32::imports::Import::ByName {
+                                                name,
+                                                ..
+                                            }) => {
                                                 if let Ok(name_str) = name.to_str() {
                                                     symbols.insert(name_str.to_string());
                                                 }
                                             }
-                                            Ok(pelite::pe32::imports::Import::ByOrdinal { ord }) => {
+                                            Ok(pelite::pe32::imports::Import::ByOrdinal {
+                                                ord,
+                                            }) => {
                                                 symbols.insert(format!("#{}", ord));
                                             }
                                             Err(e) => log::warn!("Error reading import: {:?}", e),
@@ -293,23 +317,21 @@ impl<'a> PEFile<'a> {
         // Fallback to pelite
         if let Some(pe) = &self.pelite_pe {
             match pe.exports() {
-                Ok(export_dir) => {
-                    match export_dir.by() {
-                        Ok(by) => {
-                            for (name_result, _) in by.iter_names() {
-                                match name_result {
-                                    Ok(name_cstr) => {
-                                        if let Ok(name_str) = name_cstr.to_str() {
-                                            exports.insert(name_str.to_string());
-                                        }
+                Ok(export_dir) => match export_dir.by() {
+                    Ok(by) => {
+                        for (name_result, _) in by.iter_names() {
+                            match name_result {
+                                Ok(name_cstr) => {
+                                    if let Ok(name_str) = name_cstr.to_str() {
+                                        exports.insert(name_str.to_string());
                                     }
-                                    Err(e) => log::warn!("Error reading export name: {:?}", e),
                                 }
+                                Err(e) => log::warn!("Error reading export name: {:?}", e),
                             }
                         }
-                        Err(e) => log::warn!("Error reading exports by name: {:?}", e),
                     }
-                }
+                    Err(e) => log::warn!("Error reading exports by name: {:?}", e),
+                },
                 Err(pelite::Error::Null) => {} // No exports
                 Err(e) => log::warn!("Pelite exports error: {:?}", e),
             }
@@ -356,7 +378,10 @@ impl<'a> PEFile<'a> {
                                 if let Ok(int) = desc.int() {
                                     for import in int {
                                         match import {
-                                            Ok(pelite::pe32::imports::Import::ByName { name, hint }) => {
+                                            Ok(pelite::pe32::imports::Import::ByName {
+                                                name,
+                                                hint,
+                                            }) => {
                                                 if let Ok(name_str) = name.to_str() {
                                                     imports.push(ImportInfo::by_name(
                                                         name_str.to_string(),
@@ -364,11 +389,16 @@ impl<'a> PEFile<'a> {
                                                     ));
                                                 }
                                             }
-                                            Ok(pelite::pe32::imports::Import::ByOrdinal { ord }) => {
+                                            Ok(pelite::pe32::imports::Import::ByOrdinal {
+                                                ord,
+                                            }) => {
                                                 imports.push(ImportInfo::by_ordinal(ord));
                                             }
                                             Err(e) => {
-                                                log::warn!("Error reading detailed import: {:?}", e);
+                                                log::warn!(
+                                                    "Error reading detailed import: {:?}",
+                                                    e
+                                                );
                                             }
                                         }
                                     }
@@ -382,7 +412,10 @@ impl<'a> PEFile<'a> {
                     }
 
                     if !detailed_imports.is_empty() {
-                        log::debug!("Found detailed imports from {} DLLs with pelite", detailed_imports.len());
+                        log::debug!(
+                            "Found detailed imports from {} DLLs with pelite",
+                            detailed_imports.len()
+                        );
                         return Ok(detailed_imports);
                     }
                 }
@@ -421,7 +454,10 @@ impl<'a> PEFile<'a> {
             }
 
             if !detailed_imports.is_empty() {
-                log::debug!("Found detailed imports from {} DLLs with goblin fallback", detailed_imports.len());
+                log::debug!(
+                    "Found detailed imports from {} DLLs with goblin fallback",
+                    detailed_imports.len()
+                );
             }
         }
 
@@ -466,7 +502,10 @@ impl<'a> PEFile<'a> {
                     }
 
                     if !detailed_exports.is_empty() {
-                        log::debug!("Found {} detailed exports with pelite", detailed_exports.len());
+                        log::debug!(
+                            "Found {} detailed exports with pelite",
+                            detailed_exports.len()
+                        );
                         return Ok(detailed_exports);
                     }
                 }
@@ -495,7 +534,10 @@ impl<'a> PEFile<'a> {
             }
 
             if !detailed_exports.is_empty() {
-                log::debug!("Found {} detailed exports with goblin", detailed_exports.len());
+                log::debug!(
+                    "Found {} detailed exports with goblin",
+                    detailed_exports.len()
+                );
             }
         }
 
@@ -527,7 +569,11 @@ impl PEInfo {
 
         format!(
             "{} {} - {} dependencies, {} imports, {} exports",
-            arch, file_type, self.dependencies.len(), self.import_count, self.export_count
+            arch,
+            file_type,
+            self.dependencies.len(),
+            self.import_count,
+            self.export_count
         )
     }
 }
@@ -566,9 +612,16 @@ mod tests {
                                 // Test detailed imports
                                 match pe_file.get_detailed_imports() {
                                     Ok(imports) => {
-                                        println!("Found detailed imports from {} DLLs", imports.len());
+                                        println!(
+                                            "Found detailed imports from {} DLLs",
+                                            imports.len()
+                                        );
                                         for (dll_name, functions) in imports.iter().take(3) {
-                                            println!("  {}: {} functions", dll_name, functions.len());
+                                            println!(
+                                                "  {}: {} functions",
+                                                dll_name,
+                                                functions.len()
+                                            );
                                             for func in functions.iter().take(3) {
                                                 println!("    - {}", func.display_name());
                                             }
@@ -582,8 +635,12 @@ mod tests {
                                     Ok(exports) => {
                                         println!("Found {} detailed exports", exports.len());
                                         for export in exports.iter().take(5) {
-                                            println!("  - {} (ordinal: {}, RVA: 0x{:X})",
-                                                export.display_name(), export.ordinal, export.rva);
+                                            println!(
+                                                "  - {} (ordinal: {}, RVA: 0x{:X})",
+                                                export.display_name(),
+                                                export.ordinal,
+                                                export.rva
+                                            );
                                         }
                                     }
                                     Err(e) => println!("Error getting detailed exports: {:?}", e),

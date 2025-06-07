@@ -1,20 +1,18 @@
 //! Dependency relationship analysis and tree building
-//! 
+//!
 //! This module provides functionality to analyze PE file dependencies and build
 //! comprehensive dependency trees with cycle detection and missing dependency reporting.
 
-use crate::error::Result;
-use crate::core::pe_parser::{PEFileMap, PEFile};
+use crate::core::pe_parser::{PEFile, PEFileMap};
 use crate::core::resolver::{DllResolver, ModuleSearchStrategy};
+use crate::error::Result;
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::time::Instant;
-use serde::{Deserialize, Serialize};
 
 /// Maximum recursion depth to prevent stack overflow
 const MAX_RECURSION_DEPTH: usize = 50;
-
-
 
 /// Represents a single node in the dependency tree
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -43,11 +41,12 @@ impl DependencyNode {
     /// Create a new dependency node
     pub fn new<P: AsRef<Path>>(path: P, depth: usize) -> Self {
         let path = path.as_ref().to_path_buf();
-        let name = path.file_name()
+        let name = path
+            .file_name()
             .and_then(|n| n.to_str())
             .unwrap_or("Unknown")
             .to_string();
-        
+
         Self {
             path,
             name,
@@ -60,34 +59,39 @@ impl DependencyNode {
             is_circular: false,
         }
     }
-    
+
     /// Add an error message to this node
     pub fn add_error(&mut self, error: String) {
         self.errors.push(error);
     }
-    
+
     /// Check if this node has any errors
     pub fn has_errors(&self) -> bool {
         !self.errors.is_empty()
     }
-    
+
     /// Get the total number of dependencies (recursive)
     pub fn total_dependencies(&self) -> usize {
-        self.children.len() + self.children.iter().map(|c| c.total_dependencies()).sum::<usize>()
+        self.children.len()
+            + self
+                .children
+                .iter()
+                .map(|c| c.total_dependencies())
+                .sum::<usize>()
     }
-    
+
     /// Find a node by path (recursive search)
     pub fn find_node(&self, path: &Path) -> Option<&DependencyNode> {
         if self.path == path {
             return Some(self);
         }
-        
+
         for child in &self.children {
             if let Some(node) = child.find_node(path) {
                 return Some(node);
             }
         }
-        
+
         None
     }
 }
@@ -147,22 +151,22 @@ impl DependencyTree {
             missing_dependencies: Vec::new(),
         }
     }
-    
+
     /// Get all missing dependencies
     pub fn get_missing_dependencies(&self) -> &[String] {
         &self.missing_dependencies
     }
-    
+
     /// Get all circular dependency chains
     pub fn get_circular_dependencies(&self) -> &[Vec<PathBuf>] {
         &self.circular_dependencies
     }
-    
+
     /// Check if the tree has any issues (missing or circular dependencies)
     pub fn has_issues(&self) -> bool {
         !self.missing_dependencies.is_empty() || !self.circular_dependencies.is_empty()
     }
-    
+
     /// Get a summary of the analysis
     pub fn summary(&self) -> String {
         format!(
@@ -234,7 +238,13 @@ impl DependencyAnalyzer {
         let mut processing_stack = Vec::new();
 
         // Build the tree recursively
-        match self.build_node(&root_path, 0, &mut visited, &mut processing_stack, &mut tree) {
+        match self.build_node(
+            &root_path,
+            0,
+            &mut visited,
+            &mut processing_stack,
+            &mut tree,
+        ) {
             Ok(root_node) => {
                 tree.root = Some(root_node);
             }
@@ -271,7 +281,10 @@ impl DependencyAnalyzer {
 
         // Check recursion depth limit
         if depth > self.max_depth {
-            node.add_error(format!("Maximum recursion depth ({}) exceeded", self.max_depth));
+            node.add_error(format!(
+                "Maximum recursion depth ({}) exceeded",
+                self.max_depth
+            ));
             tree.stats.max_depth = tree.stats.max_depth.max(depth);
             return Ok(node);
         }
@@ -340,27 +353,29 @@ impl DependencyAnalyzer {
             }
 
             // Try to resolve dependency path using the new resolver
-            let (_search_strategy, resolved_path) = match self.dll_resolver.resolve_dll(&pe_file, &dep_name) {
-                Ok(result) => result,
-                Err(e) => {
-                    log::warn!("Failed to resolve DLL {}: {:?}", dep_name, e);
-                    (ModuleSearchStrategy::NotFound, None)
-                }
-            };
+            let (_search_strategy, resolved_path) =
+                match self.dll_resolver.resolve_dll(&pe_file, &dep_name) {
+                    Ok(result) => result,
+                    Err(e) => {
+                        log::warn!("Failed to resolve DLL {}: {:?}", dep_name, e);
+                        (ModuleSearchStrategy::NotFound, None)
+                    }
+                };
 
             let dep_path = PathBuf::from(&dep_name);
             let actual_dep_path = resolved_path.as_ref().unwrap_or(&dep_path);
 
             // Record dependency info
-            let dep_info = tree.all_dependencies.entry(actual_dep_path.clone()).or_insert_with(|| {
-                DependencyInfo {
+            let dep_info = tree
+                .all_dependencies
+                .entry(actual_dep_path.clone())
+                .or_insert_with(|| DependencyInfo {
                     path: actual_dep_path.clone(),
                     found: actual_dep_path.exists(),
                     is_64bit: None,
                     reference_count: 0,
                     first_seen_depth: depth + 1,
-                }
-            });
+                });
             dep_info.reference_count += 1;
 
             // Recursively build child node if not already visited at this depth
@@ -389,21 +404,31 @@ impl DependencyAnalyzer {
         Ok(node)
     }
 
-
-
     /// Check if a DLL is a system DLL
     fn is_system_dll(&self, dll_name: &str) -> bool {
         let system_dlls = [
-            "kernel32.dll", "user32.dll", "gdi32.dll", "advapi32.dll",
-            "shell32.dll", "ole32.dll", "oleaut32.dll", "comctl32.dll",
-            "comdlg32.dll", "winmm.dll", "version.dll", "ws2_32.dll",
-            "ntdll.dll", "msvcrt.dll", "vcruntime140.dll", "msvcp140.dll",
+            "kernel32.dll",
+            "user32.dll",
+            "gdi32.dll",
+            "advapi32.dll",
+            "shell32.dll",
+            "ole32.dll",
+            "oleaut32.dll",
+            "comctl32.dll",
+            "comdlg32.dll",
+            "winmm.dll",
+            "version.dll",
+            "ws2_32.dll",
+            "ntdll.dll",
+            "msvcrt.dll",
+            "vcruntime140.dll",
+            "msvcp140.dll",
         ];
 
         let dll_lower = dll_name.to_lowercase();
-        system_dlls.iter().any(|&sys_dll| dll_lower == sys_dll) ||
-        dll_lower.starts_with("api-ms-") ||
-        dll_lower.starts_with("ext-ms-")
+        system_dlls.iter().any(|&sys_dll| dll_lower == sys_dll)
+            || dll_lower.starts_with("api-ms-")
+            || dll_lower.starts_with("ext-ms-")
     }
 
     /// Detect circular dependencies using DFS

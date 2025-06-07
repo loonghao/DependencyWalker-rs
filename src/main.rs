@@ -5,7 +5,10 @@
 
 // Note: We use console subsystem to support CLI mode
 // GUI mode will handle window creation appropriately
-#![cfg_attr(all(not(debug_assertions), feature = "gui", not(feature = "cli")), windows_subsystem = "windows")]
+#![cfg_attr(
+    all(not(debug_assertions), feature = "gui", not(feature = "cli")),
+    windows_subsystem = "windows"
+)]
 
 use dependencywalker_rs::{init, Result};
 use std::path::PathBuf;
@@ -13,9 +16,7 @@ use std::path::PathBuf;
 #[cfg(feature = "cli")]
 use clap::{Parser, Subcommand};
 #[cfg(feature = "cli")]
-use dependencywalker_rs::cli::{analyze_command, tree_command, list_command};
-
-
+use dependencywalker_rs::cli::{analyze_command, list_command, tree_command};
 
 #[cfg(feature = "cli")]
 #[derive(Parser)]
@@ -155,7 +156,10 @@ fn should_use_gui_mode(args: &[String]) -> bool {
     }
 
     // Check for help or version flags (should use CLI)
-    if args.iter().any(|arg| arg == "--help" || arg == "-h" || arg == "--version" || arg == "-V") {
+    if args
+        .iter()
+        .any(|arg| arg == "--help" || arg == "-h" || arg == "--version" || arg == "-V")
+    {
         return false;
     }
 
@@ -198,7 +202,12 @@ fn run_cli_mode() -> Result<()> {
     };
 
     match &cli.command {
-        Some(Commands::Analyze { file, depth, system, path }) => {
+        Some(Commands::Analyze {
+            file,
+            depth,
+            system,
+            path,
+        }) => {
             if let Err(e) = analyze_command(file, *depth, *system, path, output_format) {
                 eprintln!("Error during analysis: {}", e);
                 std::process::exit(1);
@@ -257,8 +266,9 @@ fn run_gui_mode() -> Result<()> {
         log::info!("Starting ICED GUI application");
 
         // Run the ICED application
-        DependencyWalkerApp::run()
-            .map_err(|e| dependencywalker_rs::Error::from(anyhow::anyhow!("Failed to run ICED GUI: {}", e)))?;
+        DependencyWalkerApp::run().map_err(|e| {
+            dependencywalker_rs::Error::from(anyhow::anyhow!("Failed to run ICED GUI: {}", e))
+        })?;
     }
 
     Ok(())
@@ -266,7 +276,6 @@ fn run_gui_mode() -> Result<()> {
 
 // Slint GUI integration is now handled through the ui/main.slint file
 // and the setup_gui_callbacks function above
-
 
 #[cfg(test)]
 mod tests {
@@ -278,7 +287,3 @@ mod tests {
         Cli::command().debug_assert()
     }
 }
-
-
-
-

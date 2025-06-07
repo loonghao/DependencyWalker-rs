@@ -1,21 +1,21 @@
 //! # DependencyWalker RS
-//! 
+//!
 //! A modern Windows Dependency Walker implemented in Rust.
-//! 
+//!
 //! This library provides functionality to analyze Windows PE files and their dependencies,
 //! offering both programmatic API and command-line/GUI interfaces.
-//! 
+//!
 //! ## Features
-//! 
+//!
 //! - **PE File Parsing**: Robust PE file analysis using pelite + goblin dual strategy
 //! - **Dependency Analysis**: Complete dependency tree construction and analysis
 //! - **DLL Search Path**: Full Windows DLL search path implementation
 //! - **Symbol Resolution**: Import/export symbol analysis and matching
 //! - **API Set Support**: Windows API Set redirection mechanism
 //! - **Zero Dependencies**: Static linking for single executable deployment
-//! 
+//!
 //! ## Quick Start
-//! 
+//!
 //! ```rust,no_run
 //! use dependencywalker_rs::core::pe_parser::{PEFileMap, PEFile};
 //! use dependencywalker_rs::core::dependency::DependencyAnalyzer;

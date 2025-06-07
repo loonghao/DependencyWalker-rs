@@ -30,7 +30,7 @@ fn main() {
         println!("❌ Error: Not a file");
         return;
     }
-    
+
     // Basic file information
     if let Ok(metadata) = path.metadata() {
         println!("📊 File size: {} bytes", metadata.len());

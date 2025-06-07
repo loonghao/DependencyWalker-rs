@@ -39,19 +39,19 @@ pub enum Message {
     FileDropped(PathBuf),
     FilesHovered(Vec<PathBuf>),
     FileHoverCancelled,
-    
+
     /// Analysis operations
     AnalyzeFile(PathBuf),
     AnalysisCompleted(Result<AnalysisResult, String>),
-    
+
     /// UI operations
     ToggleTheme,
     ToggleSidebar,
     SelectDependency(String),
-    
+
     /// Window operations
     WindowResized(iced::Size),
-    
+
     /// Settings
     UpdateMaxDepth(u32),
     ToggleSystemDlls,

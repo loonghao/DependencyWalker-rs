@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 jobs:
-  build-and-release:
+  goreleaser:
     runs-on: windows-latest
     steps:
       - name: Checkout
@@ -29,97 +29,12 @@ jobs:
         with:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Build Unified Binary (x64)
-        run: |
-          cargo build --release --bin depwalker --target x86_64-pc-windows-msvc
-
-      - name: Build Unified Binary (x86)
-        run: |
-          cargo build --release --bin depwalker --target i686-pc-windows-msvc
-
-      - name: Create release directories
-        run: |
-          mkdir -p release/x64
-          mkdir -p release/x86
-
-      - name: Copy binaries
-        run: |
-          # Unified binaries
-          cp target/x86_64-pc-windows-msvc/release/depwalker.exe release/x64/
-          cp target/i686-pc-windows-msvc/release/depwalker.exe release/x86/
-
-      - name: Copy documentation
-        run: |
-          # Copy docs to release directories
-          cp README.md LICENSE release/x64/
-          cp README.md LICENSE release/x86/
-
-      - name: Create archives
-        run: |
-          # Get version from tag
-          $VERSION = $env:GITHUB_REF -replace 'refs/tags/', ''
-
-          # Create unified archives
-          Compress-Archive -Path "release/x64/*" -DestinationPath "dependencywalker-rs-$VERSION-windows-x64.zip"
-          Compress-Archive -Path "release/x86/*" -DestinationPath "dependencywalker-rs-$VERSION-windows-x86.zip"
-
-      - name: Generate checksums
-        run: |
-          Get-ChildItem -Filter "*.zip" | ForEach-Object {
-            $hash = Get-FileHash $_.Name -Algorithm SHA256
-            "$($hash.Hash.ToLower())  $($_.Name)" | Out-File -Append -Encoding utf8 checksums.txt
-          }
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v5
         with:
-          files: |
-            *.zip
-            checksums.txt
-          body: |
-            ## DependencyWalker RS ${{ github.ref_name }}
-            
-            A modern Windows Dependency Walker implemented in Rust with both CLI and GUI interfaces.
-            
-            ### Downloads
-
-            - **Windows x64**: `dependencywalker-rs-${{ github.ref_name }}-windows-x64.zip`
-            - **Windows x86**: `dependencywalker-rs-${{ github.ref_name }}-windows-x86.zip`
-            
-            ### Features
-            
-            - 🔍 **Deep Analysis**: Comprehensive dependency analysis with configurable depth
-            - 🌳 **Tree Visualization**: Interactive dependency tree with missing dependency highlighting  
-            - 📊 **Multiple Formats**: Export results in Text, JSON, or XML formats
-            - ⚡ **Zero Dependencies**: Single executable with no external dependencies
-            - 🖥️ **Modern GUI**: Cross-platform GUI built with Dioxus
-            - 💻 **Powerful CLI**: Full-featured command-line interface
-            - 🎯 **Smart Mode Detection**: Automatically switches between CLI and GUI modes
-            
-            ### Installation
-            
-            1. Download the appropriate archive for your system
-            2. Extract the files to a directory of your choice
-            3. Add the directory to your PATH (optional)
-            4. Run `depwalker.exe` for CLI or `depwalker-gui.exe` for GUI
-            
-            ### Usage Examples
-            
-            ```bash
-            # CLI Mode (with arguments)
-            depwalker.exe analyze example.exe
-            depwalker.exe tree example.exe --missing
-            depwalker.exe list example.exe --detailed
-
-            # GUI Mode (no arguments or --gui flag)
-            depwalker.exe
-            depwalker.exe --gui
-            ```
-            
-            ### Verification
-            
-            All binaries are signed and checksums are provided in `checksums.txt`.
-          draft: false
-          prerelease: false
+          distribution: goreleaser
+          version: latest
+          args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

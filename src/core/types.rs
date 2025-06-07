@@ -1,7 +1,7 @@
 //! PE-related data structures and types
 
-use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 
 /// Import information for a symbol
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -26,7 +26,7 @@ impl ImportInfo {
             address: None,
         }
     }
-    
+
     /// Create a new import by ordinal
     pub fn by_ordinal(ordinal: u16) -> Self {
         Self {
@@ -36,7 +36,7 @@ impl ImportInfo {
             address: None,
         }
     }
-    
+
     /// Get display name for this import
     pub fn display_name(&self) -> String {
         if let Some(name) = &self.name {
@@ -181,7 +181,7 @@ impl ParseStats {
     pub fn add_warning(&mut self, warning: String) {
         self.warnings.push(warning);
     }
-    
+
     /// Check if parsing was successful
     pub fn is_successful(&self) -> bool {
         self.parser_used.is_some()

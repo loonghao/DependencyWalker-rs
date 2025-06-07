@@ -1,5 +1,5 @@
 //! Test GUI application
-//! 
+//!
 //! This example tests the ICED GUI implementation.
 
 use dependencywalker_rs::{init, Result};

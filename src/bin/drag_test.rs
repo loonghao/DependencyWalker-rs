@@ -1,8 +1,8 @@
 //! Drag & Drop Test Interface - Simulate GUI drag & drop functionality
 
 use std::env;
-use std::path::Path;
 use std::io::{self, Write};
+use std::path::Path;
 
 fn main() {
     println!("🎯 DependencyWalker RS - Drag & Drop Test Interface");
@@ -92,7 +92,11 @@ fn analyze_file(file_path: &str) {
     // File size and time
     if let Ok(metadata) = path.metadata() {
         let size = metadata.len();
-        println!("📊 File size: {} bytes ({:.2} KB)", size, size as f64 / 1024.0);
+        println!(
+            "📊 File size: {} bytes ({:.2} KB)",
+            size,
+            size as f64 / 1024.0
+        );
 
         if let Ok(modified) = metadata.modified() {
             println!("📅 Modified time: {:?}", modified);
@@ -103,7 +107,7 @@ fn analyze_file(file_path: &str) {
     if let Some(extension) = path.extension() {
         let ext_lower = extension.to_string_lossy().to_lowercase();
         println!("📋 File extension: .{}", ext_lower);
-        
+
         match ext_lower.as_str() {
             "dll" => {
                 println!("🔧 文件类型: 动态链接库 (Dynamic Link Library)");
@@ -135,7 +139,7 @@ fn analyze_file(file_path: &str) {
             }
         }
     }
-    
+
     println!("\n🎯 Simulated analysis results:");
     println!("  🔍 PE file header: Parsed");
     println!("  📋 Import table: Analyzed");

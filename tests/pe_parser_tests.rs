@@ -1,6 +1,6 @@
 //! Unit tests for PE parser functionality
 
-use dependencywalker_rs::core::pe_parser::{PEFileMap, PEFile};
+use dependencywalker_rs::core::pe_parser::{PEFile, PEFileMap};
 use dependencywalker_rs::error::Error;
 use std::path::Path;
 
@@ -21,7 +21,7 @@ fn test_pe_info_structure() {
     // Test the PEInfo structure and its methods
     use dependencywalker_rs::core::pe_parser::PEInfo;
     use std::path::PathBuf;
-    
+
     let info = PEInfo {
         path: PathBuf::from("test.dll"),
         is_64bit: false,
@@ -30,11 +30,11 @@ fn test_pe_info_structure() {
         import_count: 10,
         export_count: 5,
     };
-    
+
     assert!(info.is_dll());
     assert!(!info.is_64bit);
     assert_eq!(info.dependencies.len(), 2);
-    
+
     let description = info.description();
     assert!(description.contains("x86"));
     assert!(description.contains("DLL"));
@@ -47,7 +47,7 @@ fn test_pe_info_structure() {
 fn test_pe_info_exe() {
     use dependencywalker_rs::core::pe_parser::PEInfo;
     use std::path::PathBuf;
-    
+
     let info = PEInfo {
         path: PathBuf::from("test.exe"),
         is_64bit: true,
@@ -56,10 +56,10 @@ fn test_pe_info_exe() {
         import_count: 20,
         export_count: 0,
     };
-    
+
     assert!(!info.is_dll());
     assert!(info.is_64bit);
-    
+
     let description = info.description();
     assert!(description.contains("x64"));
     assert!(description.contains("EXE"));
@@ -114,7 +114,10 @@ fn test_real_dll_parsing() {
                 println!("  - {}", dep);
             }
             // liblzma.dll should have some dependencies
-            assert!(!deps.is_empty(), "Expected liblzma.dll to have dependencies");
+            assert!(
+                !deps.is_empty(),
+                "Expected liblzma.dll to have dependencies"
+            );
         }
         Err(e) => panic!("Failed to get dependencies: {:?}", e),
     }
@@ -162,7 +165,10 @@ fn test_real_dll_parsing() {
     match pe_file.get_info() {
         Ok(info) => {
             println!("PE Info: {}", info.description());
-            assert_eq!(info.path.file_name().unwrap().to_str().unwrap(), "liblzma.dll");
+            assert_eq!(
+                info.path.file_name().unwrap().to_str().unwrap(),
+                "liblzma.dll"
+            );
             assert!(info.dependencies.len() > 0);
         }
         Err(e) => println!("Failed to get PE info: {:?}", e),

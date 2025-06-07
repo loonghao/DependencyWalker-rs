@@ -3,10 +3,10 @@
 //! This module provides the Slint-based graphical user interface.
 
 use crate::core::dependency::DependencyAnalyzer;
-use crate::core::pe_parser::{PEFileMap, PEFile, PEInfo};
+use crate::core::pe_parser::{PEFile, PEFileMap, PEInfo};
 use crate::error::Error;
-use std::path::{Path, PathBuf};
 use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
 // Include the generated Slint code
@@ -92,7 +92,10 @@ impl SlintApp {
             }
             Err(e) => {
                 println!("MainWindow::new() failed: {}", e);
-                return Err(Error::generic(format!("Failed to create Slint window: {}", e)));
+                return Err(Error::generic(format!(
+                    "Failed to create Slint window: {}",
+                    e
+                )));
             }
         };
 
@@ -134,7 +137,10 @@ impl SlintApp {
             }
             Err(e) => {
                 println!("Window.run() failed: {}", e);
-                Err(Error::generic(format!("Failed to run Slint application: {}", e)))
+                Err(Error::generic(format!(
+                    "Failed to run Slint application: {}",
+                    e
+                )))
             }
         }
     }
@@ -142,7 +148,7 @@ impl SlintApp {
     /// Set up all callback functions
     fn setup_callbacks(&self) {
         let window_weak = self.window.as_weak();
-        
+
         // File selection callback
         self.window.on_file_selected({
             let window_weak = window_weak.clone();
@@ -291,7 +297,7 @@ impl SlintApp {
 
                             i_slint_backend_winit::WinitWindowEventResult::PreventDefault
                         }
-                        _ => i_slint_backend_winit::WinitWindowEventResult::Propagate
+                        _ => i_slint_backend_winit::WinitWindowEventResult::Propagate,
                     }
                 }
             });
@@ -316,10 +322,13 @@ impl SlintApp {
         self.window.set_is_dragging(false);
 
         // Initialize empty data
-        self.window.set_dependencies(Rc::new(slint::VecModel::default()).into());
+        self.window
+            .set_dependencies(Rc::new(slint::VecModel::default()).into());
         self.window.set_selected_dependency("".into());
-        self.window.set_import_functions(Rc::new(slint::VecModel::default()).into());
-        self.window.set_export_functions(Rc::new(slint::VecModel::default()).into());
+        self.window
+            .set_import_functions(Rc::new(slint::VecModel::default()).into());
+        self.window
+            .set_export_functions(Rc::new(slint::VecModel::default()).into());
         self.window.set_selected_function("".into());
 
         // Initialize UI state
@@ -358,15 +367,15 @@ impl SlintApp {
         // Start analysis in a separate thread
         let window_weak = window.as_weak();
         let path_clone = path.clone();
-        
+
         std::thread::spawn(move || {
             let result = Self::analyze_file(&path_clone);
-            
+
             // Update UI on main thread
             slint::invoke_from_event_loop(move || {
                 if let Some(window) = window_weak.upgrade() {
                     window.set_is_loading(false);
-                    
+
                     match result {
                         Ok(analysis_data) => {
                             Self::update_ui_with_analysis(window, analysis_data);
@@ -377,7 +386,8 @@ impl SlintApp {
                         }
                     }
                 }
-            }).unwrap_or_else(|e| {
+            })
+            .unwrap_or_else(|e| {
                 log::error!("Failed to invoke from event loop: {:?}", e);
             });
         });
@@ -414,7 +424,8 @@ impl SlintApp {
                         Self::handle_file_selected(window, file_path);
                     }
                 }
-            }).unwrap_or_else(|e| {
+            })
+            .unwrap_or_else(|e| {
                 log::error!("Failed to invoke from event loop: {:?}", e);
             });
         });
@@ -435,14 +446,14 @@ impl SlintApp {
         let file_map = PEFileMap::new(path)?;
         let pe_file = PEFile::new(&file_map)?;
         let pe_info = pe_file.get_info()?;
-        
+
         // Convert data for Slint
         let dependency_tree = if let Some(root) = &tree.root {
             vec![Self::convert_dependency_node(root)]
         } else {
             vec![]
         };
-        
+
         // Get detailed import and export information
         let detailed_imports = pe_file.get_detailed_imports()?;
         let detailed_exports = pe_file.get_detailed_exports()?;
@@ -476,7 +487,10 @@ impl SlintApp {
         // Convert detailed exports to function data
         let mut export_functions = Vec::new();
         for export in &detailed_exports {
-            let name = export.name.clone().unwrap_or_else(|| format!("Ordinal #{}", export.ordinal));
+            let name = export
+                .name
+                .clone()
+                .unwrap_or_else(|| format!("Ordinal #{}", export.ordinal));
 
             export_functions.push(FunctionInfoData {
                 name,
@@ -487,7 +501,7 @@ impl SlintApp {
                 forward_name: export.forward_name.clone().unwrap_or_default(),
             });
         }
-        
+
         Ok(AnalysisData {
             pe_info,
             dependency_tree,
@@ -498,7 +512,9 @@ impl SlintApp {
     }
 
     /// Convert dependency node to Slint data structure
-    fn convert_dependency_node(node: &crate::core::dependency::DependencyNode) -> DependencyItemData {
+    fn convert_dependency_node(
+        node: &crate::core::dependency::DependencyNode,
+    ) -> DependencyItemData {
         let status = if !node.found {
             DependencyStatusData::Missing
         } else if Self::is_system_dll(&node.name) {
@@ -507,7 +523,9 @@ impl SlintApp {
             DependencyStatusData::Found
         };
 
-        let children = node.children.iter()
+        let children = node
+            .children
+            .iter()
             .map(|child| Self::convert_dependency_node(child))
             .collect();
 
@@ -523,15 +541,27 @@ impl SlintApp {
     /// Check if a DLL is a system DLL
     fn is_system_dll(name: &str) -> bool {
         let system_dlls = [
-            "kernel32.dll", "user32.dll", "gdi32.dll", "advapi32.dll",
-            "shell32.dll", "ole32.dll", "oleaut32.dll", "comctl32.dll",
-            "comdlg32.dll", "winmm.dll", "version.dll", "ws2_32.dll",
-            "ntdll.dll", "msvcrt.dll", "rpcrt4.dll", "secur32.dll",
+            "kernel32.dll",
+            "user32.dll",
+            "gdi32.dll",
+            "advapi32.dll",
+            "shell32.dll",
+            "ole32.dll",
+            "oleaut32.dll",
+            "comctl32.dll",
+            "comdlg32.dll",
+            "winmm.dll",
+            "version.dll",
+            "ws2_32.dll",
+            "ntdll.dll",
+            "msvcrt.dll",
+            "rpcrt4.dll",
+            "secur32.dll",
         ];
 
-        system_dlls.iter().any(|&sys_dll|
-            name.to_lowercase() == sys_dll.to_lowercase()
-        )
+        system_dlls
+            .iter()
+            .any(|&sys_dll| name.to_lowercase() == sys_dll.to_lowercase())
     }
 
     /// Update UI with analysis results
@@ -665,11 +695,15 @@ impl SlintApp {
         let file_size_str = Self::format_file_size(module.file_size);
 
         // Get version info
-        let version = module.version_info.get("FileVersion")
+        let version = module
+            .version_info
+            .get("FileVersion")
             .cloned()
             .unwrap_or_default();
 
-        let description = module.version_info.get("FileDescription")
+        let description = module
+            .version_info
+            .get("FileDescription")
             .cloned()
             .unwrap_or_default();
 
@@ -690,8 +724,8 @@ impl SlintApp {
             entry_point: module.entry_point.clone().into(),
             image_base: module.image_base.clone().into(),
             subsystem: module.subsystem.clone().into(),
-            checksum: "".into(),   // TODO: Add checksum to ModuleInfoData
-            timestamp: "".into(),  // TODO: Add timestamp to ModuleInfoData
+            checksum: "".into(),  // TODO: Add checksum to ModuleInfoData
+            timestamp: "".into(), // TODO: Add timestamp to ModuleInfoData
         }
     }
 
@@ -725,11 +759,13 @@ impl SlintApp {
         // For now, use placeholder values since PEInfo doesn't have these fields
         // TODO: Extend PEInfo to include more detailed PE information
         let entry_point = String::new(); // Not available in current PEInfo
-        let image_base = String::new();  // Not available in current PEInfo
-        let subsystem = String::new();   // Not available in current PEInfo
+        let image_base = String::new(); // Not available in current PEInfo
+        let subsystem = String::new(); // Not available in current PEInfo
 
         ModuleInfoData {
-            name: pe_info.path.file_name()
+            name: pe_info
+                .path
+                .file_name()
                 .and_then(|n| n.to_str())
                 .unwrap_or("Unknown")
                 .to_string(),
@@ -762,8 +798,10 @@ impl SlintApp {
                     match result {
                         Ok(Some(analysis_data)) => {
                             // Update module info with the selected dependency's details
-                            let module_info = Self::create_module_info_from_pe(&analysis_data.pe_info);
-                            window.set_module_info(Self::convert_to_slint_module_info(&module_info));
+                            let module_info =
+                                Self::create_module_info_from_pe(&analysis_data.pe_info);
+                            window
+                                .set_module_info(Self::convert_to_slint_module_info(&module_info));
 
                             // Update function lists with the selected dependency's functions
                             let import_functions_model = Rc::new(slint::VecModel::default());
@@ -790,7 +828,8 @@ impl SlintApp {
                         }
                     }
                 }
-            }).unwrap_or_else(|e| {
+            })
+            .unwrap_or_else(|e| {
                 log::error!("Failed to invoke from event loop: {:?}", e);
             });
         });
@@ -803,7 +842,10 @@ impl SlintApp {
             std::env::var("WINDIR").unwrap_or_else(|_| "C:\\Windows".to_string()) + "\\System32",
             std::env::var("WINDIR").unwrap_or_else(|_| "C:\\Windows".to_string()) + "\\SysWOW64",
             std::env::var("WINDIR").unwrap_or_else(|_| "C:\\Windows".to_string()),
-            std::env::current_dir().unwrap_or_default().to_string_lossy().to_string(),
+            std::env::current_dir()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string(),
         ];
 
         // Try to find the dependency file

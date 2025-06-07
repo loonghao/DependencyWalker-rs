@@ -4,9 +4,9 @@
 pub mod commands {
     //! CLI command implementations
 
+    use super::output::{DependencyInfo, Format, OutputData};
+    use crate::core::{DependencyAnalyzer, PEFile, PEFileMap};
     use crate::error::Result;
-    use crate::core::{DependencyAnalyzer, PEFileMap, PEFile};
-    use super::output::{OutputData, DependencyInfo, Format};
     use std::path::Path;
     use std::time::Instant;
 
@@ -38,7 +38,7 @@ pub mod commands {
         // Check if file exists first
         if !file.exists() {
             return Err(crate::error::Error::FileNotFound {
-                path: file.to_path_buf()
+                path: file.to_path_buf(),
             });
         }
 
@@ -55,23 +55,31 @@ pub mod commands {
 
         // Add analysis statistics
         output_data.add_metadata("analysis_time_ms", tree.stats.analysis_time_ms.to_string());
-        output_data.add_metadata("total_dependencies", tree.stats.total_dependencies.to_string());
+        output_data.add_metadata(
+            "total_dependencies",
+            tree.stats.total_dependencies.to_string(),
+        );
         output_data.add_metadata("missing_count", tree.stats.missing_count.to_string());
         output_data.add_metadata("circular_count", tree.stats.circular_count.to_string());
         output_data.add_metadata("max_depth", tree.stats.max_depth.to_string());
 
         // Add missing dependencies as warnings
         for missing in tree.get_missing_dependencies() {
-            output_data.warnings.push(format!("Missing dependency: {}", missing));
+            output_data
+                .warnings
+                .push(format!("Missing dependency: {}", missing));
         }
 
         // Add circular dependencies as warnings
         for circular in tree.get_circular_dependencies() {
-            let cycle_str = circular.iter()
+            let cycle_str = circular
+                .iter()
                 .map(|p| p.file_name().unwrap_or_default().to_string_lossy())
                 .collect::<Vec<_>>()
                 .join(" -> ");
-            output_data.warnings.push(format!("Circular dependency: {}", cycle_str));
+            output_data
+                .warnings
+                .push(format!("Circular dependency: {}", cycle_str));
         }
 
         // Output results
@@ -92,7 +100,7 @@ pub mod commands {
         // Check if file exists first
         if !file.exists() {
             return Err(crate::error::Error::FileNotFound {
-                path: file.to_path_buf()
+                path: file.to_path_buf(),
             });
         }
 
@@ -131,7 +139,7 @@ pub mod commands {
         // Check if file exists first
         if !file.exists() {
             return Err(crate::error::Error::FileNotFound {
-                path: file.to_path_buf()
+                path: file.to_path_buf(),
             });
         }
 
@@ -179,10 +187,20 @@ pub mod commands {
     fn convert_node_to_output(node: &crate::core::DependencyNode, output_data: &mut OutputData) {
         let dep_info = DependencyInfo {
             name: node.name.clone(),
-            path: if node.found { Some(node.path.display().to_string()) } else { None },
+            path: if node.found {
+                Some(node.path.display().to_string())
+            } else {
+                None
+            },
             found: node.found,
             symbols: Vec::new(), // Will be populated in symbol analysis task
-            architecture: node.is_64bit.map(|is_64| if is_64 { "x64".to_string() } else { "x86".to_string() }),
+            architecture: node.is_64bit.map(|is_64| {
+                if is_64 {
+                    "x64".to_string()
+                } else {
+                    "x86".to_string()
+                }
+            }),
             file_size: None,
             version: None,
         };
@@ -208,7 +226,10 @@ pub mod commands {
 
         let indent = "  ".repeat(depth);
         let status = if node.found { "✓" } else { "✗" };
-        let arch = node.is_64bit.map(|is_64| if is_64 { " (x64)" } else { " (x86)" }).unwrap_or("");
+        let arch = node
+            .is_64bit
+            .map(|is_64| if is_64 { " (x64)" } else { " (x86)" })
+            .unwrap_or("");
 
         println!("{}{} {}{}", indent, status, node.name, arch);
 
@@ -227,9 +248,9 @@ pub mod commands {
 /// Output formatting utilities
 pub mod output {
     //! Output formatting for different formats
-    
+
     use serde::{Deserialize, Serialize};
-    
+
     /// Output format enumeration
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub enum Format {
@@ -237,7 +258,7 @@ pub mod output {
         Json,
         Xml,
     }
-    
+
     /// Generic output data structure
     #[derive(Debug, Serialize, Deserialize)]
     pub struct OutputData {
@@ -247,7 +268,7 @@ pub mod output {
         pub warnings: Vec<String>,
         pub metadata: std::collections::HashMap<String, String>,
     }
-    
+
     /// Dependency information for output
     #[derive(Debug, Serialize, Deserialize)]
     pub struct DependencyInfo {
@@ -259,7 +280,7 @@ pub mod output {
         pub file_size: Option<u64>,
         pub version: Option<String>,
     }
-    
+
     impl OutputData {
         /// Create new output data
         pub fn new(file_path: String) -> Self {
@@ -276,24 +297,25 @@ pub mod output {
         pub fn add_metadata(&mut self, key: &str, value: String) {
             self.metadata.insert(key.to_string(), value);
         }
-        
+
         /// Format output according to specified format
         pub fn format(&self, format: Format) -> crate::error::Result<String> {
             match format {
                 Format::Text => Ok(self.format_text()),
-                Format::Json => {
-                    serde_json::to_string_pretty(self)
-                        .map_err(|e| crate::error::Error::generic(e.to_string()))
-                }
+                Format::Json => serde_json::to_string_pretty(self)
+                    .map_err(|e| crate::error::Error::generic(e.to_string())),
                 Format::Xml => self.format_xml(),
             }
         }
-        
+
         /// Format as human-readable text
         fn format_text(&self) -> String {
             let mut output = String::new();
             output.push_str(&format!("Analysis for: {}\n", self.file_path));
-            output.push_str(&format!("Dependencies found: {}\n", self.dependencies.len()));
+            output.push_str(&format!(
+                "Dependencies found: {}\n",
+                self.dependencies.len()
+            ));
 
             // Add metadata if available
             if !self.metadata.is_empty() {
@@ -361,13 +383,19 @@ pub mod output {
             xml.push_str("<OutputData>\n");
 
             // File path
-            xml.push_str(&format!("  <FilePath>{}</FilePath>\n", self.escape_xml(&self.file_path)));
+            xml.push_str(&format!(
+                "  <FilePath>{}</FilePath>\n",
+                self.escape_xml(&self.file_path)
+            ));
 
             // Dependencies
             xml.push_str("  <Dependencies>\n");
             for dep in &self.dependencies {
                 xml.push_str("    <Dependency>\n");
-                xml.push_str(&format!("      <Name>{}</Name>\n", self.escape_xml(&dep.name)));
+                xml.push_str(&format!(
+                    "      <Name>{}</Name>\n",
+                    self.escape_xml(&dep.name)
+                ));
                 xml.push_str(&format!("      <Found>{}</Found>\n", dep.found));
 
                 if let Some(path) = &dep.path {
@@ -375,11 +403,17 @@ pub mod output {
                 }
 
                 if let Some(arch) = &dep.architecture {
-                    xml.push_str(&format!("      <Architecture>{}</Architecture>\n", self.escape_xml(arch)));
+                    xml.push_str(&format!(
+                        "      <Architecture>{}</Architecture>\n",
+                        self.escape_xml(arch)
+                    ));
                 }
 
                 if let Some(version) = &dep.version {
-                    xml.push_str(&format!("      <Version>{}</Version>\n", self.escape_xml(version)));
+                    xml.push_str(&format!(
+                        "      <Version>{}</Version>\n",
+                        self.escape_xml(version)
+                    ));
                 }
 
                 if let Some(size) = dep.file_size {
@@ -389,7 +423,10 @@ pub mod output {
                 if !dep.symbols.is_empty() {
                     xml.push_str("      <Symbols>\n");
                     for symbol in &dep.symbols {
-                        xml.push_str(&format!("        <Symbol>{}</Symbol>\n", self.escape_xml(symbol)));
+                        xml.push_str(&format!(
+                            "        <Symbol>{}</Symbol>\n",
+                            self.escape_xml(symbol)
+                        ));
                     }
                     xml.push_str("      </Symbols>\n");
                 }
@@ -402,10 +439,12 @@ pub mod output {
             if !self.metadata.is_empty() {
                 xml.push_str("  <Metadata>\n");
                 for (key, value) in &self.metadata {
-                    xml.push_str(&format!("    <{}>{}</{}>\n",
-                                        self.escape_xml(key),
-                                        self.escape_xml(value),
-                                        self.escape_xml(key)));
+                    xml.push_str(&format!(
+                        "    <{}>{}</{}>\n",
+                        self.escape_xml(key),
+                        self.escape_xml(value),
+                        self.escape_xml(key)
+                    ));
                 }
                 xml.push_str("  </Metadata>\n");
             }
@@ -423,7 +462,10 @@ pub mod output {
             if !self.warnings.is_empty() {
                 xml.push_str("  <Warnings>\n");
                 for warning in &self.warnings {
-                    xml.push_str(&format!("    <Warning>{}</Warning>\n", self.escape_xml(warning)));
+                    xml.push_str(&format!(
+                        "    <Warning>{}</Warning>\n",
+                        self.escape_xml(warning)
+                    ));
                 }
                 xml.push_str("  </Warnings>\n");
             }
@@ -447,9 +489,9 @@ pub mod output {
 pub mod config {
     //! Configuration file support for CLI
 
+    use crate::error::Result;
     use serde::{Deserialize, Serialize};
     use std::path::PathBuf;
-    use crate::error::Result;
 
     /// CLI configuration structure
     #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -482,23 +524,26 @@ pub mod config {
         /// Load configuration from file
         pub fn load_from_file<P: AsRef<std::path::Path>>(path: P) -> Result<Self> {
             let content = std::fs::read_to_string(path)?;
-            let config: CliConfig = toml::from_str(&content)
-                .map_err(|e| crate::error::Error::generic(format!("Failed to parse config: {}", e)))?;
+            let config: CliConfig = toml::from_str(&content).map_err(|e| {
+                crate::error::Error::generic(format!("Failed to parse config: {}", e))
+            })?;
             Ok(config)
         }
 
         /// Save configuration to file
         pub fn save_to_file<P: AsRef<std::path::Path>>(&self, path: P) -> Result<()> {
-            let content = toml::to_string_pretty(self)
-                .map_err(|e| crate::error::Error::generic(format!("Failed to serialize config: {}", e)))?;
+            let content = toml::to_string_pretty(self).map_err(|e| {
+                crate::error::Error::generic(format!("Failed to serialize config: {}", e))
+            })?;
             std::fs::write(path, content)?;
             Ok(())
         }
 
         /// Get default config file path
         pub fn default_config_path() -> Result<PathBuf> {
-            let mut path = dirs::config_dir()
-                .ok_or_else(|| crate::error::Error::generic("Could not determine config directory"))?;
+            let mut path = dirs::config_dir().ok_or_else(|| {
+                crate::error::Error::generic("Could not determine config directory")
+            })?;
             path.push("dependencywalker_rs");
             std::fs::create_dir_all(&path)?;
             path.push("config.toml");
@@ -508,18 +553,16 @@ pub mod config {
         /// Load configuration with fallback to default
         pub fn load_or_default() -> Self {
             match Self::default_config_path() {
-                Ok(path) if path.exists() => {
-                    match Self::load_from_file(&path) {
-                        Ok(config) => {
-                            log::debug!("Loaded configuration from: {}", path.display());
-                            config
-                        }
-                        Err(e) => {
-                            log::warn!("Failed to load config from {}: {}", path.display(), e);
-                            Self::default()
-                        }
+                Ok(path) if path.exists() => match Self::load_from_file(&path) {
+                    Ok(config) => {
+                        log::debug!("Loaded configuration from: {}", path.display());
+                        config
                     }
-                }
+                    Err(e) => {
+                        log::warn!("Failed to load config from {}: {}", path.display(), e);
+                        Self::default()
+                    }
+                },
                 _ => Self::default(),
             }
         }
@@ -589,8 +632,10 @@ pub mod progress {
                 0.0
             };
 
-            eprint!("\rProgress: {}/{} ({}%) - {:.1} items/sec",
-                   current, self.total, percentage, rate);
+            eprint!(
+                "\rProgress: {}/{} ({}%) - {:.1} items/sec",
+                current, self.total, percentage, rate
+            );
 
             if current >= self.total {
                 eprintln!(); // New line when complete
@@ -601,13 +646,18 @@ pub mod progress {
         pub fn finish(&self) {
             let current = self.current.load(Ordering::Relaxed);
             let elapsed = self.start_time.elapsed();
-            eprintln!("\rCompleted: {}/{} in {:.2}s", current, self.total, elapsed.as_secs_f64());
+            eprintln!(
+                "\rCompleted: {}/{} in {:.2}s",
+                current,
+                self.total,
+                elapsed.as_secs_f64()
+            );
         }
     }
 }
 
 // Re-export commonly used items
 pub use commands::*;
-pub use output::{Format as OutputFormat, OutputData, DependencyInfo};
 pub use config::CliConfig;
+pub use output::{DependencyInfo, Format as OutputFormat, OutputData};
 pub use progress::ProgressReporter;

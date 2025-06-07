@@ -5,44 +5,55 @@ project_name: dependencywalker-rs
 
 before:
   hooks:
-    # Set specific Rust toolchain version for consistency
-    - rustup override set 1.82.0
+    # Install Rust targets
+    - rustup target add x86_64-pc-windows-msvc
+    - rustup target add i686-pc-windows-msvc
     # Verify Rust version
     - rustc --version
-    # Add Windows targets for the specific toolchain
-    - rustup target add x86_64-pc-windows-msvc --toolchain 1.82.0
-    - rustup target add i686-pc-windows-msvc --toolchain 1.82.0
     # Verify dependency versions
     - cargo tree --depth 1
 
 builds:
-  # Unified Binary (CLI + GUI)
-  - id: depwalker-unified
+  # Unified Binary x64 (CLI + GUI)
+  - id: depwalker-x64
     binary: depwalker
-    main: ./src/main.rs
     env:
       - CGO_ENABLED=0
     goos:
       - windows
     goarch:
       - amd64
+    hooks:
+      pre:
+        - cargo build --release --bin depwalker --target x86_64-pc-windows-msvc --features cli,gui
+      post:
+        - cp target/x86_64-pc-windows-msvc/release/depwalker.exe {{ .Path }}
+
+  # Unified Binary x86 (CLI + GUI)
+  - id: depwalker-x86
+    binary: depwalker
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - windows
+    goarch:
       - 386
     hooks:
       pre:
-        - rustup run 1.82.0 cargo build --release --bin depwalker --target {{ if eq .Arch "amd64" }}x86_64-pc-windows-msvc{{ else }}i686-pc-windows-msvc{{ end }}
+        - cargo build --release --bin depwalker --target i686-pc-windows-msvc --features cli,gui
       post:
-        - cp target/{{ if eq .Arch "amd64" }}x86_64-pc-windows-msvc{{ else }}i686-pc-windows-msvc{{ end }}/release/depwalker.exe {{ .Path }}
+        - cp target/i686-pc-windows-msvc/release/depwalker.exe {{ .Path }}
 
 archives:
   - id: unified-archive
     builds:
-      - depwalker-unified
+      - depwalker-x64
+      - depwalker-x86
     name_template: "{{ .ProjectName }}-{{ .Version }}-{{ .Os }}-{{ .Arch }}"
     format: zip
     files:
       - README.md
       - LICENSE
-      - CHANGELOG.md
 
 checksum:
   name_template: "checksums.txt"

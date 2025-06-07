@@ -1,5 +1,5 @@
 //! Dependency tree data structures and utilities
-//! 
+//!
 //! This module provides additional utilities for working with dependency trees,
 //! including traversal, filtering, and analysis functions.
 
@@ -55,7 +55,7 @@ impl NodeFilter {
             include_system: true,
         }
     }
-    
+
     /// Create a filter for missing dependencies only
     pub fn missing_only() -> Self {
         Self {
@@ -66,31 +66,31 @@ impl NodeFilter {
             include_system: true,
         }
     }
-    
+
     /// Check if a node matches the filter criteria
     pub fn matches(&self, node: &DependencyNode) -> bool {
         if self.errors_only && !node.has_errors() {
             return false;
         }
-        
+
         if self.missing_only && node.found {
             return false;
         }
-        
+
         if self.circular_only && !node.is_circular {
             return false;
         }
-        
+
         if let Some(max_depth) = self.max_depth {
             if node.depth > max_depth {
                 return false;
             }
         }
-        
+
         if !self.include_system && is_system_dll(&node.name) {
             return false;
         }
-        
+
         true
     }
 }
@@ -103,9 +103,13 @@ pub struct TreeIterator<'a> {
 
 impl<'a> TreeIterator<'a> {
     /// Create a new tree iterator with specified traversal order
-    pub fn new(tree: &'a DependencyTree, order: TraversalOrder, filter: Option<NodeFilter>) -> Self {
+    pub fn new(
+        tree: &'a DependencyTree,
+        order: TraversalOrder,
+        filter: Option<NodeFilter>,
+    ) -> Self {
         let mut nodes = Vec::new();
-        
+
         if let Some(root) = &tree.root {
             match order {
                 TraversalOrder::PreOrder => {
@@ -119,10 +123,10 @@ impl<'a> TreeIterator<'a> {
                 }
             }
         }
-        
+
         Self { nodes, current: 0 }
     }
-    
+
     fn collect_pre_order(
         node: &'a DependencyNode,
         nodes: &mut Vec<&'a DependencyNode>,
@@ -131,12 +135,12 @@ impl<'a> TreeIterator<'a> {
         if filter.as_ref().map_or(true, |f| f.matches(node)) {
             nodes.push(node);
         }
-        
+
         for child in &node.children {
             Self::collect_pre_order(child, nodes, filter);
         }
     }
-    
+
     fn collect_post_order(
         node: &'a DependencyNode,
         nodes: &mut Vec<&'a DependencyNode>,
@@ -145,12 +149,12 @@ impl<'a> TreeIterator<'a> {
         for child in &node.children {
             Self::collect_post_order(child, nodes, filter);
         }
-        
+
         if filter.as_ref().map_or(true, |f| f.matches(node)) {
             nodes.push(node);
         }
     }
-    
+
     fn collect_breadth_first(
         root: &'a DependencyNode,
         nodes: &mut Vec<&'a DependencyNode>,
@@ -158,12 +162,12 @@ impl<'a> TreeIterator<'a> {
     ) {
         let mut queue = std::collections::VecDeque::new();
         queue.push_back(root);
-        
+
         while let Some(node) = queue.pop_front() {
             if filter.as_ref().map_or(true, |f| f.matches(node)) {
                 nodes.push(node);
             }
-            
+
             for child in &node.children {
                 queue.push_back(child);
             }
@@ -173,7 +177,7 @@ impl<'a> TreeIterator<'a> {
 
 impl<'a> Iterator for TreeIterator<'a> {
     type Item = &'a DependencyNode;
-    
+
     fn next(&mut self) -> Option<Self::Item> {
         if self.current < self.nodes.len() {
             let node = self.nodes[self.current];
@@ -191,12 +195,12 @@ impl DependencyTree {
     pub fn iter(&self, order: TraversalOrder) -> TreeIterator {
         TreeIterator::new(self, order, None)
     }
-    
+
     /// Get an iterator with filtering
     pub fn iter_filtered(&self, order: TraversalOrder, filter: NodeFilter) -> TreeIterator {
         TreeIterator::new(self, order, Some(filter))
     }
-    
+
     /// Find all nodes matching a predicate
     pub fn find_nodes<F>(&self, predicate: F) -> Vec<&DependencyNode>
     where
@@ -206,17 +210,17 @@ impl DependencyTree {
             .filter(|node| predicate(node))
             .collect()
     }
-    
+
     /// Get all nodes with errors
     pub fn get_error_nodes(&self) -> Vec<&DependencyNode> {
         self.find_nodes(|node| node.has_errors())
     }
-    
+
     /// Get all missing dependencies as nodes
     pub fn get_missing_nodes(&self) -> Vec<&DependencyNode> {
         self.find_nodes(|node| !node.found)
     }
-    
+
     /// Get dependency path from root to a specific node
     pub fn get_path_to_node(&self, target_path: &Path) -> Option<Vec<&DependencyNode>> {
         if let Some(root) = &self.root {
@@ -227,7 +231,7 @@ impl DependencyTree {
         }
         None
     }
-    
+
     fn find_path_recursive<'a>(
         &self,
         node: &'a DependencyNode,
@@ -235,17 +239,17 @@ impl DependencyTree {
         path: &mut Vec<&'a DependencyNode>,
     ) -> bool {
         path.push(node);
-        
+
         if node.path == target {
             return true;
         }
-        
+
         for child in &node.children {
             if self.find_path_recursive(child, target, path) {
                 return true;
             }
         }
-        
+
         path.pop();
         false
     }
@@ -254,14 +258,26 @@ impl DependencyTree {
 /// Check if a DLL name is a system DLL
 fn is_system_dll(dll_name: &str) -> bool {
     let system_dlls = [
-        "kernel32.dll", "user32.dll", "gdi32.dll", "advapi32.dll",
-        "shell32.dll", "ole32.dll", "oleaut32.dll", "comctl32.dll",
-        "comdlg32.dll", "winmm.dll", "version.dll", "ws2_32.dll",
-        "ntdll.dll", "msvcrt.dll", "vcruntime140.dll", "msvcp140.dll",
+        "kernel32.dll",
+        "user32.dll",
+        "gdi32.dll",
+        "advapi32.dll",
+        "shell32.dll",
+        "ole32.dll",
+        "oleaut32.dll",
+        "comctl32.dll",
+        "comdlg32.dll",
+        "winmm.dll",
+        "version.dll",
+        "ws2_32.dll",
+        "ntdll.dll",
+        "msvcrt.dll",
+        "vcruntime140.dll",
+        "msvcp140.dll",
     ];
-    
+
     let dll_lower = dll_name.to_lowercase();
-    system_dlls.iter().any(|&sys_dll| dll_lower == sys_dll) ||
-    dll_lower.starts_with("api-ms-") ||
-    dll_lower.starts_with("ext-ms-")
+    system_dlls.iter().any(|&sys_dll| dll_lower == sys_dll)
+        || dll_lower.starts_with("api-ms-")
+        || dll_lower.starts_with("ext-ms-")
 }

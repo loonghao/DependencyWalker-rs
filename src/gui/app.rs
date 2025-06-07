@@ -2,15 +2,18 @@
 //!
 //! This module contains the main application state and logic for the ICED-based GUI.
 
-use crate::gui::{Message, message::{AnalysisResult, DependencyInfo, DependencyStatus}};
-use crate::gui::style::{AppTheme, Colors, FontSize, Spacing, FileTypes};
 use crate::core::dependency::DependencyAnalyzer;
+use crate::core::dependency::DependencyNode;
+use crate::gui::style::{AppTheme, Colors, FileTypes, FontSize, Spacing};
+use crate::gui::{
+    message::{AnalysisResult, DependencyInfo, DependencyStatus},
+    Message,
+};
 use iced::{
-    widget::{button, column, container, row, text, scrollable},
-    Element, Length, Task, Theme, Subscription, Event
+    widget::{button, column, container, row, scrollable, text},
+    Element, Event, Length, Subscription, Task, Theme,
 };
 use std::path::PathBuf;
-use crate::core::dependency::DependencyNode;
 
 /// Main application state
 #[derive(Debug, Default)]
@@ -89,10 +92,14 @@ impl DependencyWalkerApp {
 
     /// Run the application
     pub fn run() -> iced::Result {
-        iced::application("DependencyWalker RS", Self::update_static, Self::view_static)
-            .subscription(Self::subscription_static)
-            .theme(Self::theme_static)
-            .run()
+        iced::application(
+            "DependencyWalker RS",
+            Self::update_static,
+            Self::view_static,
+        )
+        .subscription(Self::subscription_static)
+        .theme(Self::theme_static)
+        .run()
     }
 
     /// Static update function for iced
@@ -112,22 +119,18 @@ impl DependencyWalkerApp {
 
     /// Static subscription function for iced
     fn subscription_static(_state: &Self) -> Subscription<Message> {
-        iced::event::listen_with(|event, _status, _id| {
-            match event {
-                Event::Window(iced::window::Event::FileDropped(path)) => {
-                    Some(Message::FileDropped(path))
-                }
-                Event::Window(iced::window::Event::FileHovered(path)) => {
-                    Some(Message::FilesHovered(vec![path]))
-                }
-                Event::Window(iced::window::Event::FilesHoveredLeft) => {
-                    Some(Message::FileHoverCancelled)
-                }
-                Event::Window(iced::window::Event::Resized(size)) => {
-                    Some(Message::WindowResized(size))
-                }
-                _ => None
+        iced::event::listen_with(|event, _status, _id| match event {
+            Event::Window(iced::window::Event::FileDropped(path)) => {
+                Some(Message::FileDropped(path))
             }
+            Event::Window(iced::window::Event::FileHovered(path)) => {
+                Some(Message::FilesHovered(vec![path]))
+            }
+            Event::Window(iced::window::Event::FilesHoveredLeft) => {
+                Some(Message::FileHoverCancelled)
+            }
+            Event::Window(iced::window::Event::Resized(size)) => Some(Message::WindowResized(size)),
+            _ => None,
         })
     }
 
@@ -247,9 +250,7 @@ impl DependencyWalkerApp {
                                     analysis_time,
                                 })
                             }
-                            Err(e) => {
-                                Err(format!("Analysis failed: {}", e))
-                            }
+                            Err(e) => Err(format!("Analysis failed: {}", e)),
                         }
                     },
                     Message::AnalysisCompleted,
@@ -280,15 +281,14 @@ impl DependencyWalkerApp {
                 self.ui_state.selected_dependency = Some(name);
                 Task::none()
             }
-            Message::WindowResized(_size) => {
-                Task::none()
-            }
+            Message::WindowResized(_size) => Task::none(),
             Message::UpdateMaxDepth(depth) => {
                 self.analysis_settings.max_depth = depth;
                 Task::none()
             }
             Message::ToggleSystemDlls => {
-                self.analysis_settings.include_system_dlls = !self.analysis_settings.include_system_dlls;
+                self.analysis_settings.include_system_dlls =
+                    !self.analysis_settings.include_system_dlls;
                 Task::none()
             }
             Message::AddSearchPath(path) => {
@@ -331,11 +331,7 @@ impl DependencyWalkerApp {
 
     /// Create the main view
     pub fn view(&self) -> Element<Message> {
-        let content = column![
-            self.create_menu_bar(),
-            self.create_main_layout(),
-        ]
-        .spacing(0);
+        let content = column![self.create_menu_bar(), self.create_main_layout(),].spacing(0);
 
         container(content)
             .width(Length::Fill)
@@ -369,7 +365,7 @@ impl DependencyWalkerApp {
                 .style(|theme: &Theme| {
                     iced::widget::container::Style {
                         background: Some(iced::Background::Color(
-                            theme.extended_palette().background.weak.color
+                            theme.extended_palette().background.weak.color,
                         )),
                         border: iced::Border {
                             width: 1.0,
@@ -385,7 +381,7 @@ impl DependencyWalkerApp {
                 .style(|theme: &Theme| {
                     iced::widget::container::Style {
                         background: Some(iced::Background::Color(
-                            theme.extended_palette().background.base.color
+                            theme.extended_palette().background.base.color,
                         )),
                         border: iced::Border {
                             width: 1.0,
@@ -444,10 +440,8 @@ impl DependencyWalkerApp {
                             color: Some(Colors::TEXT_SECONDARY),
                         }
                     }),
-
                 // Spacer
                 text("").size(Spacing::EXTRA_LARGE),
-
                 // Modern drop zone with better styling and drag feedback
                 container(
                     column![
@@ -480,46 +474,64 @@ impl DependencyWalkerApp {
                             }),
                         ]
                         .spacing(Spacing::LARGE),
+                        text(if self.ui_state.is_dragging {
+                            "Drop files here!"
+                        } else {
+                            "Drag & Drop files here"
+                        })
+                        .size(FontSize::HEADING)
+                        .style(move |_theme: &Theme| {
+                            iced::widget::text::Style {
+                                color: Some(if self.ui_state.is_dragging {
+                                    Colors::PRIMARY
+                                } else {
+                                    Colors::TEXT_PRIMARY
+                                }),
+                            }
+                        }),
+                        text("or").size(FontSize::MEDIUM).style(|_theme: &Theme| {
+                            iced::widget::text::Style {
+                                color: Some(Colors::TEXT_MUTED),
+                            }
+                        }),
+                        button(if self.ui_state.file_dialog_open {
+                            "Opening..."
+                        } else {
+                            "📂 Browse Files"
+                        })
+                        .on_press_maybe(if self.ui_state.file_dialog_open {
+                            None
+                        } else {
+                            Some(Message::OpenFileDialog)
+                        })
+                        .padding([Spacing::MEDIUM, Spacing::LARGE])
+                        .style(move |_theme: &Theme, status| {
+                            let mut style = iced::widget::button::Style::default();
+                            let base_color = if self.ui_state.file_dialog_open {
+                                Colors::TEXT_MUTED
+                            } else {
+                                Colors::PRIMARY
+                            };
+                            style.background = Some(iced::Background::Color(base_color));
+                            style.text_color = Colors::TEXT_PRIMARY;
+                            style.border = iced::Border {
+                                width: 0.0,
+                                radius: 8.0.into(),
+                                color: iced::Color::TRANSPARENT,
+                            };
 
-                        text(if self.ui_state.is_dragging { "Drop files here!" } else { "Drag & Drop files here" })
-                            .size(FontSize::HEADING)
-                            .style(move |_theme: &Theme| {
-                                iced::widget::text::Style {
-                                    color: Some(if self.ui_state.is_dragging { Colors::PRIMARY } else { Colors::TEXT_PRIMARY }),
+                            match status {
+                                iced::widget::button::Status::Hovered
+                                    if !self.ui_state.file_dialog_open =>
+                                {
+                                    style.background =
+                                        Some(iced::Background::Color(Colors::PRIMARY_HOVER));
                                 }
-                            }),
+                                _ => {}
+                            }
 
-                        text("or")
-                            .size(FontSize::MEDIUM)
-                            .style(|_theme: &Theme| {
-                                iced::widget::text::Style {
-                                    color: Some(Colors::TEXT_MUTED),
-                                }
-                            }),
-
-                        button(if self.ui_state.file_dialog_open { "Opening..." } else { "📂 Browse Files" })
-                            .on_press_maybe(if self.ui_state.file_dialog_open { None } else { Some(Message::OpenFileDialog) })
-                            .padding([Spacing::MEDIUM, Spacing::LARGE])
-                            .style(move |_theme: &Theme, status| {
-                                let mut style = iced::widget::button::Style::default();
-                                let base_color = if self.ui_state.file_dialog_open { Colors::TEXT_MUTED } else { Colors::PRIMARY };
-                                style.background = Some(iced::Background::Color(base_color));
-                                style.text_color = Colors::TEXT_PRIMARY;
-                                style.border = iced::Border {
-                                    width: 0.0,
-                                    radius: 8.0.into(),
-                                    color: iced::Color::TRANSPARENT,
-                                };
-
-                                match status {
-                                    iced::widget::button::Status::Hovered if !self.ui_state.file_dialog_open => {
-                                        style.background = Some(iced::Background::Color(Colors::PRIMARY_HOVER));
-                                    }
-                                    _ => {}
-                                }
-
-                                style
-                            }),
+                            style
+                        }),
                     ]
                     .spacing(Spacing::LARGE)
                     .align_x(iced::Alignment::Center)
@@ -536,10 +548,8 @@ impl DependencyWalkerApp {
                         ..Default::default()
                     }
                 }),
-
                 // Spacer
                 text("").size(Spacing::LARGE),
-
                 // Supported formats with modern styling
                 column![
                     text("Supported Formats:")
@@ -550,31 +560,41 @@ impl DependencyWalkerApp {
                             }
                         }),
                     row![
-                        text("▶ .exe").size(FontSize::SMALL).style(|_theme: &Theme| {
-                            iced::widget::text::Style {
-                                color: Some(Colors::PRIMARY),
-                            }
-                        }),
-                        text("⚙ .dll").size(FontSize::SMALL).style(|_theme: &Theme| {
-                            iced::widget::text::Style {
-                                color: Some(Colors::SUCCESS),
-                            }
-                        }),
-                        text("⚡ .sys").size(FontSize::SMALL).style(|_theme: &Theme| {
-                            iced::widget::text::Style {
-                                color: Some(Colors::WARNING),
-                            }
-                        }),
-                        text("◆ .ocx").size(FontSize::SMALL).style(|_theme: &Theme| {
-                            iced::widget::text::Style {
-                                color: Some(Colors::INFO),
-                            }
-                        }),
-                        text("★ .mll").size(FontSize::SMALL).style(|_theme: &Theme| {
-                            iced::widget::text::Style {
-                                color: Some(Colors::MLL_PLUGIN),
-                            }
-                        }),
+                        text("▶ .exe")
+                            .size(FontSize::SMALL)
+                            .style(|_theme: &Theme| {
+                                iced::widget::text::Style {
+                                    color: Some(Colors::PRIMARY),
+                                }
+                            }),
+                        text("⚙ .dll")
+                            .size(FontSize::SMALL)
+                            .style(|_theme: &Theme| {
+                                iced::widget::text::Style {
+                                    color: Some(Colors::SUCCESS),
+                                }
+                            }),
+                        text("⚡ .sys")
+                            .size(FontSize::SMALL)
+                            .style(|_theme: &Theme| {
+                                iced::widget::text::Style {
+                                    color: Some(Colors::WARNING),
+                                }
+                            }),
+                        text("◆ .ocx")
+                            .size(FontSize::SMALL)
+                            .style(|_theme: &Theme| {
+                                iced::widget::text::Style {
+                                    color: Some(Colors::INFO),
+                                }
+                            }),
+                        text("★ .mll")
+                            .size(FontSize::SMALL)
+                            .style(|_theme: &Theme| {
+                                iced::widget::text::Style {
+                                    color: Some(Colors::MLL_PLUGIN),
+                                }
+                            }),
                     ]
                     .spacing(Spacing::LARGE),
                     text("Maya Plugin Libraries (.mll) fully supported!")
@@ -589,7 +609,7 @@ impl DependencyWalkerApp {
                 .align_x(iced::Alignment::Center),
             ]
             .spacing(Spacing::MEDIUM)
-            .align_x(iced::Alignment::Center)
+            .align_x(iced::Alignment::Center),
         )
         .width(Length::Fill)
         .height(Length::Fill)
@@ -599,14 +619,11 @@ impl DependencyWalkerApp {
         if let Some(error) = &self.error_message {
             column![
                 main_content,
-                container(
-                    text(format!("Error: {}", error))
-                        .style(|theme: &Theme| {
-                            iced::widget::text::Style {
-                                color: Some(theme.extended_palette().danger.base.color),
-                            }
-                        })
-                )
+                container(text(format!("Error: {}", error)).style(|theme: &Theme| {
+                    iced::widget::text::Style {
+                        color: Some(theme.extended_palette().danger.base.color),
+                    }
+                }))
                 .padding(16)
                 .width(Length::Fill)
             ]
@@ -658,7 +675,7 @@ impl DependencyWalkerApp {
             .style(|theme: &Theme| {
                 iced::widget::container::Style {
                     background: Some(iced::Background::Color(
-                        theme.extended_palette().background.base.color
+                        theme.extended_palette().background.base.color,
                     )),
                     border: iced::Border {
                         width: 1.0,
@@ -668,7 +685,6 @@ impl DependencyWalkerApp {
                     ..Default::default()
                 }
             }),
-
             // Right: Module details
             container(
                 column![
@@ -692,7 +708,7 @@ impl DependencyWalkerApp {
             .style(|theme: &Theme| {
                 iced::widget::container::Style {
                     background: Some(iced::Background::Color(
-                        theme.extended_palette().background.base.color
+                        theme.extended_palette().background.base.color,
                     )),
                     border: iced::Border {
                         width: 1.0,
@@ -720,23 +736,21 @@ impl DependencyWalkerApp {
                         .into()
                 }
             ]
-            .spacing(8)
+            .spacing(8),
         )
         .width(Length::Fill)
         .height(Length::FillPortion(1))
         .padding(8)
-        .style(|theme: &Theme| {
-            iced::widget::container::Style {
-                background: Some(iced::Background::Color(
-                    theme.extended_palette().background.base.color
-                )),
-                border: iced::Border {
-                    width: 1.0,
-                    color: theme.extended_palette().background.strong.color,
-                    ..Default::default()
-                },
+        .style(|theme: &Theme| iced::widget::container::Style {
+            background: Some(iced::Background::Color(
+                theme.extended_palette().background.base.color,
+            )),
+            border: iced::Border {
+                width: 1.0,
+                color: theme.extended_palette().background.strong.color,
                 ..Default::default()
-            }
+            },
+            ..Default::default()
         });
 
         column![
@@ -752,12 +766,12 @@ impl DependencyWalkerApp {
 
     /// Create dependency tree view
     fn create_dependency_tree<'a>(&self, analysis: &'a AnalysisResult) -> Element<'a, Message> {
-        let tree_items = analysis.dependencies.iter().fold(
-            column![].spacing(1),
-            |col, dep| {
+        let tree_items = analysis
+            .dependencies
+            .iter()
+            .fold(column![].spacing(1), |col, dep| {
                 col.push(self.create_dependency_item(dep, 0))
-            }
-        );
+            });
 
         scrollable(tree_items)
             .width(Length::Fill)
@@ -766,7 +780,11 @@ impl DependencyWalkerApp {
     }
 
     /// Create a single dependency item with modern styling and file type icons
-    fn create_dependency_item<'a>(&self, dep: &'a DependencyInfo, depth: usize) -> Element<'a, Message> {
+    fn create_dependency_item<'a>(
+        &self,
+        dep: &'a DependencyInfo,
+        depth: usize,
+    ) -> Element<'a, Message> {
         // Get file extension for icon and color
         let extension = std::path::Path::new(&dep.name)
             .extension()
@@ -790,7 +808,9 @@ impl DependencyWalkerApp {
             DependencyStatus::Delayed => Colors::DELAYED,
         };
 
-        let is_selected = self.ui_state.selected_dependency
+        let is_selected = self
+            .ui_state
+            .selected_dependency
             .as_ref()
             .map(|s| s == &dep.name)
             .unwrap_or(false);
@@ -802,19 +822,23 @@ impl DependencyWalkerApp {
         let item_button = button(
             row![
                 text(format!("{}{}", indent, tree_prefix)).size(FontSize::SMALL),
-                text(file_icon).size(FontSize::MEDIUM).style(move |_theme: &Theme| {
-                    iced::widget::text::Style {
-                        color: Some(file_color),
-                    }
-                }),
+                text(file_icon)
+                    .size(FontSize::MEDIUM)
+                    .style(move |_theme: &Theme| {
+                        iced::widget::text::Style {
+                            color: Some(file_color),
+                        }
+                    }),
                 text(&dep.name).size(FontSize::BODY),
-                text(status_icon).size(FontSize::SMALL).style(move |_theme: &Theme| {
-                    iced::widget::text::Style {
-                        color: Some(status_color),
-                    }
-                }),
+                text(status_icon)
+                    .size(FontSize::SMALL)
+                    .style(move |_theme: &Theme| {
+                        iced::widget::text::Style {
+                            color: Some(status_color),
+                        }
+                    }),
             ]
-            .spacing(Spacing::SMALL)
+            .spacing(Spacing::SMALL),
         )
         .on_press(Message::SelectDependency(dep.name.clone()))
         .width(Length::Fill)
@@ -823,14 +847,14 @@ impl DependencyWalkerApp {
 
             if is_selected {
                 style.background = Some(iced::Background::Color(
-                    theme.extended_palette().primary.weak.color
+                    theme.extended_palette().primary.weak.color,
                 ));
             }
 
             match status {
                 iced::widget::button::Status::Hovered => {
                     style.background = Some(iced::Background::Color(
-                        theme.extended_palette().background.weak.color
+                        theme.extended_palette().background.weak.color,
                     ));
                 }
                 _ => {}
@@ -853,7 +877,11 @@ impl DependencyWalkerApp {
     /// Create module details view
     fn create_module_details<'a>(&self, selected_name: &str) -> Element<'a, Message> {
         if let Some(analysis) = &self.analysis_result {
-            if let Some(dep) = analysis.dependencies.iter().find(|d| d.name == selected_name) {
+            if let Some(dep) = analysis
+                .dependencies
+                .iter()
+                .find(|d| d.name == selected_name)
+            {
                 let details = column![
                     text(format!("Module: {}", dep.name)).size(16),
                     text("").size(8), // Spacer
@@ -890,7 +918,11 @@ impl DependencyWalkerApp {
             text("").size(8), // Spacer
             text("Export Functions:").size(14),
             text("• DllMain").size(12),
-            text(format!("Total dependencies: {}", analysis.dependencies.len())).size(12),
+            text(format!(
+                "Total dependencies: {}",
+                analysis.dependencies.len()
+            ))
+            .size(12),
         ]
         .spacing(4);
 
@@ -914,13 +946,19 @@ fn convert_dependency_node_to_info(node: &DependencyNode) -> Vec<DependencyInfo>
         DependencyStatus::Found
     };
 
-    let children = node.children.iter()
+    let children = node
+        .children
+        .iter()
         .flat_map(|child| convert_dependency_node_to_info(child))
         .collect();
 
     result.push(DependencyInfo {
         name: node.name.clone(),
-        path: if node.found { Some(node.path.clone()) } else { None },
+        path: if node.found {
+            Some(node.path.clone())
+        } else {
+            None
+        },
         status,
         children,
     });
@@ -931,13 +969,25 @@ fn convert_dependency_node_to_info(node: &DependencyNode) -> Vec<DependencyInfo>
 /// Check if a DLL is a system DLL
 fn is_system_dll(name: &str) -> bool {
     let system_dlls = [
-        "kernel32.dll", "user32.dll", "gdi32.dll", "advapi32.dll",
-        "shell32.dll", "ole32.dll", "oleaut32.dll", "comctl32.dll",
-        "comdlg32.dll", "winmm.dll", "version.dll", "ws2_32.dll",
-        "ntdll.dll", "msvcrt.dll", "rpcrt4.dll", "secur32.dll",
+        "kernel32.dll",
+        "user32.dll",
+        "gdi32.dll",
+        "advapi32.dll",
+        "shell32.dll",
+        "ole32.dll",
+        "oleaut32.dll",
+        "comctl32.dll",
+        "comdlg32.dll",
+        "winmm.dll",
+        "version.dll",
+        "ws2_32.dll",
+        "ntdll.dll",
+        "msvcrt.dll",
+        "rpcrt4.dll",
+        "secur32.dll",
     ];
 
-    system_dlls.iter().any(|&sys_dll|
-        name.to_lowercase() == sys_dll.to_lowercase()
-    )
+    system_dlls
+        .iter()
+        .any(|&sys_dll| name.to_lowercase() == sys_dll.to_lowercase())
 }

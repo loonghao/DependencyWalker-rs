@@ -1,0 +1,278 @@
+// Functions list component for DependencyWalker RS
+import { Theme, ModernContainer } from "../styles/theme.slint";
+import { ScrollView } from "std-widgets.slint";
+
+// Function information structure
+export struct FunctionInfo {
+    name: string,
+    ordinal: string,
+    address: string,
+    is-export: bool,
+}
+
+export component FunctionItem inherits Rectangle {
+    in property <FunctionInfo> function-info;
+    in property <bool> is-selected: false;
+
+    callback item-clicked(string);
+
+    height: 20px;
+
+    // Background for selection
+    Rectangle {
+        background: root.is-selected ? Theme.primary.with-alpha(0.2) : transparent;
+        border-radius: Theme.radius-small;
+
+        // Hover effect
+        touch-area := TouchArea {
+            width: 100%;
+            height: 100%;
+
+            clicked => {
+                root.item-clicked(root.function-info.name);
+            }
+        }
+
+        states [
+            hover when touch-area.has-hover : {
+                background: root.is-selected ? Theme.primary.with-alpha(0.3) : Theme.background-tertiary;
+            }
+        ]
+    }
+
+    // Bottom border line for each item
+    Rectangle {
+        y: parent.height - 1px;
+        height: 1px;
+        width: 100%;
+        background: Theme.border.with-alpha(0.3);
+    }
+    
+    HorizontalLayout {
+        padding-left: Theme.spacing-tiny;
+        padding-right: Theme.spacing-tiny;
+        spacing: Theme.spacing-small;
+        alignment: start;
+        
+        // Function type indicator
+        Text {
+            text: root.function-info.is-export ? "↗" : "↙";
+            color: root.function-info.is-export ? Theme.success : Theme.info;
+            font-size: Theme.font-small;
+            vertical-alignment: center;
+            width: 20px;
+        }
+        
+        // Function name
+        Text {
+            text: root.function-info.name;
+            color: Theme.text-primary;
+            font-size: Theme.font-caption;
+            vertical-alignment: center;
+            horizontal-stretch: 1;
+        }
+        
+        // Ordinal (if available)
+        if root.function-info.ordinal != "" : Text {
+            text: "#" + root.function-info.ordinal;
+            color: Theme.text-muted;
+            font-size: Theme.font-caption;
+            vertical-alignment: center;
+            width: 40px;
+        }
+        
+        // Address (if available)
+        if root.function-info.address != "" : Text {
+            text: root.function-info.address;
+            color: Theme.text-secondary;
+            font-size: Theme.font-caption;
+            vertical-alignment: center;
+            width: 80px;
+        }
+    }
+}
+
+export component FunctionsList inherits ModernContainer {
+    in property <[FunctionInfo]> import-functions: [];
+    in property <[FunctionInfo]> export-functions: [];
+    in property <string> selected-function: "";
+    in property <bool> show-imports: true;
+    in property <bool> show-exports: true;
+    
+    callback function-selected(string);
+    callback toggle-imports();
+    callback toggle-exports();
+    
+    VerticalLayout {
+        padding: Theme.spacing-small;
+        spacing: Theme.spacing-tiny;
+        
+        // Header with toggles
+        HorizontalLayout {
+            spacing: Theme.spacing-medium;
+            alignment: space-between;
+            
+            Text {
+                text: "Import/Export Functions";
+                font-size: Theme.font-body;
+                color: Theme.text-primary;
+                font-weight: 600;
+            }
+            
+            HorizontalLayout {
+                spacing: Theme.spacing-small;
+                
+                // Import toggle
+                TouchArea {
+                    width: 80px;
+                    height: 24px;
+                    
+                    clicked => {
+                        root.toggle-imports();
+                    }
+                    
+                    Rectangle {
+                        background: root.show-imports ? Theme.info.with-alpha(0.2) : Theme.background-tertiary;
+                        border-radius: Theme.radius-small;
+                        border-width: 1px;
+                        border-color: root.show-imports ? Theme.info : Theme.border;
+                        
+                        Text {
+                            text: "Imports";
+                            color: root.show-imports ? Theme.info : Theme.text-muted;
+                            font-size: Theme.font-caption;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+                
+                // Export toggle
+                TouchArea {
+                    width: 80px;
+                    height: 24px;
+                    
+                    clicked => {
+                        root.toggle-exports();
+                    }
+                    
+                    Rectangle {
+                        background: root.show-exports ? Theme.success.with-alpha(0.2) : Theme.background-tertiary;
+                        border-radius: Theme.radius-small;
+                        border-width: 1px;
+                        border-color: root.show-exports ? Theme.success : Theme.border;
+                        
+                        Text {
+                            text: "Exports";
+                            color: root.show-exports ? Theme.success : Theme.text-muted;
+                            font-size: Theme.font-caption;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+            }
+        }
+        
+        Rectangle {
+            height: 1px;
+            background: Theme.separator;
+        }
+        
+        // Content area
+        if root.import-functions.length == 0 && root.export-functions.length == 0 : Rectangle {
+            height: 150px;
+            
+            Text {
+                text: "No functions to display";
+                color: Theme.text-muted;
+                font-size: Theme.font-body;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+        
+        if root.import-functions.length > 0 || root.export-functions.length > 0 : ScrollView {
+            height: 100%;
+            
+            VerticalLayout {
+                spacing: Theme.spacing-small;
+                
+                // Import functions section
+                if root.show-imports && root.import-functions.length > 0 : VerticalLayout {
+                    spacing: Theme.spacing-tiny;
+                    
+                    HorizontalLayout {
+                        spacing: Theme.spacing-small;
+                        
+                        Text {
+                            text: "↙";
+                            color: Theme.info;
+                            font-size: Theme.font-body;
+                        }
+                        
+                        Text {
+                            text: "Import Functions (" + root.import-functions.length + ")";
+                            font-size: Theme.font-body;
+                            color: Theme.text-secondary;
+                            font-weight: 600;
+                        }
+                    }
+                    
+                    VerticalLayout {
+                        spacing: 0px;
+
+                        for func[index] in root.import-functions : FunctionItem {
+                            function-info: func;
+                            is-selected: func.name == root.selected-function;
+
+                            item-clicked(name) => {
+                                root.function-selected(name);
+                            }
+                        }
+                    }
+                }
+                
+                // Separator between imports and exports
+                if root.show-imports && root.show-exports && root.import-functions.length > 0 && root.export-functions.length > 0 : Rectangle {
+                    height: Theme.spacing-medium;
+                }
+                
+                // Export functions section
+                if root.show-exports && root.export-functions.length > 0 : VerticalLayout {
+                    spacing: Theme.spacing-tiny;
+                    
+                    HorizontalLayout {
+                        spacing: Theme.spacing-small;
+                        
+                        Text {
+                            text: "↗";
+                            color: Theme.success;
+                            font-size: Theme.font-body;
+                        }
+                        
+                        Text {
+                            text: "Export Functions (" + root.export-functions.length + ")";
+                            font-size: Theme.font-body;
+                            color: Theme.text-secondary;
+                            font-weight: 600;
+                        }
+                    }
+                    
+                    VerticalLayout {
+                        spacing: 0px;
+
+                        for func[index] in root.export-functions : FunctionItem {
+                            function-info: func;
+                            is-selected: func.name == root.selected-function;
+
+                            item-clicked(name) => {
+                                root.function-selected(name);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

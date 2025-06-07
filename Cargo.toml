@@ -1,0 +1,85 @@
+[package]
+name = "dependencywalker_rs"
+version = "0.1.0"
+edition = "2021"
+authors = ["DependencyWalker RS Team"]
+description = "A modern Windows Dependency Walker implemented in Rust"
+license = "MIT"
+repository = "https://github.com/loonghao/DependencyWalker-rs"
+readme = "README.md"
+categories = ["command-line-utilities", "development-tools", "gui"]
+keywords = ["windows", "dll", "dependencies", "pe", "dependency-walker"]
+
+# Ensure static linking for zero-dependency runtime
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[dependencies]
+# PE file parsing - Dual strategy for robustness
+pelite = "0.10"
+goblin = "0.9"
+
+# Windows API bindings
+windows = { version = "0.58", features = [
+    "Win32_Foundation",
+    "Win32_System_LibraryLoader",
+    "Win32_System_SystemInformation",
+    "Win32_System_Registry",
+    "Win32_Storage_FileSystem",
+    "Win32_System_Diagnostics_Debug"
+]}
+
+# Error handling
+thiserror = "2.0"
+anyhow = "1.0"
+
+# Serialization support
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Command line interface
+clap = { version = "4.5.39", features = ["derive"], optional = true }
+colored = { version = "3.0", optional = true }
+toml = "0.8"
+dirs = "6.0"
+
+# GUI frameworks
+# Slint for modern native UI
+slint = { version = "1.11", optional = true, default-features = false, features = ["std", "compat-1-2", "accessibility", "backend-winit", "renderer-femtovg", "renderer-software"] }
+# ICED for alternative GUI (legacy support)
+iced = { version = "0.13", optional = true, features = ["tokio", "debug"] }
+
+# Winit for window events (drag and drop support)
+winit = { version = "0.30", optional = true }
+# Slint winit backend for advanced window event handling
+i-slint-backend-winit = { version = "1.11", optional = true }
+
+# File dialog for GUI
+rfd = { version = "0.15", optional = true }
+
+# Logging
+log = "0.4"
+env_logger = "0.10"
+
+# Utilities
+regex = "1.10"
+
+[features]
+default = ["cli", "gui"]
+cli = ["dep:clap", "dep:colored"]
+gui = ["dep:slint", "dep:iced", "dep:rfd", "dep:winit", "dep:i-slint-backend-winit"]
+
+# Unified binary - CLI and GUI in one executable (zero dependencies)
+[[bin]]
+name = "depwalker"
+path = "src/main.rs"
+
+# Build dependencies for Slint UI compilation
+[build-dependencies]
+slint-build = "1.11"
+
+[dev-dependencies]
+tempfile = "3.14"

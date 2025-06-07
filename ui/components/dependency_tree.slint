@@ -1,0 +1,197 @@
+// Dependency tree view component for DependencyWalker RS
+import { Theme, FileTypes, ModernContainer } from "../styles/theme.slint";
+import { ScrollView } from "std-widgets.slint";
+
+// Dependency status enum
+export enum DependencyStatus {
+    Found,
+    Missing,
+    SystemDll,
+    Delayed,
+}
+
+// Dependency item structure
+export struct DependencyItem {
+    name: string,
+    status: DependencyStatus,
+    path: string,
+    extension: string,
+    depth: int,
+    has-children: bool,
+    is-expanded: bool,
+}
+
+export component DependencyTreeItem inherits Rectangle {
+    in property <DependencyItem> item;
+    in property <bool> is-selected: false;
+
+    callback item-clicked(string);
+    callback toggle-expanded(string);
+
+    height: 16px;
+    
+    // Background for selection
+    Rectangle {
+        background: root.is-selected ? Theme.primary.with-alpha(0.2) : transparent;
+        border-radius: Theme.radius-small;
+
+        // Hover effect
+        touch-area := TouchArea {
+            width: 100%;
+            height: 100%;
+
+            clicked => {
+                root.item-clicked(root.item.name);
+            }
+        }
+
+        states [
+            hover when touch-area.has-hover : {
+                background: root.is-selected ? Theme.primary.with-alpha(0.3) : Theme.background-tertiary;
+            }
+        ]
+    }
+    
+    HorizontalLayout {
+        padding-left: Theme.spacing-tiny + root.item.depth * 8px;
+        padding-right: Theme.spacing-tiny;
+        spacing: Theme.spacing-tiny;
+        alignment: start;
+        
+        // Tree structure indicator with better visual hierarchy
+        if root.item.depth > 0 : Text {
+            text: root.item.depth == 1 ? "├─ " : "│  ├─ ";
+            color: Theme.text-muted;
+            font-size: Theme.font-caption;
+            vertical-alignment: center;
+        }
+        
+        // Expand/collapse button for items with children
+        if root.item.has-children : TouchArea {
+            width: 10px;
+            height: 10px;
+
+            clicked => {
+                root.toggle-expanded(root.item.name);
+            }
+
+            Rectangle {
+                width: 8px;
+                height: 8px;
+                border-radius: 1px;
+                border-width: 1px;
+                border-color: Theme.text-muted;
+
+                Text {
+                    text: root.item.is-expanded ? "−" : "+";
+                    color: Theme.text-muted;
+                    font-size: 7px;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+        }
+        
+        // File type icon
+        Text {
+            text: FileTypes.get-icon(root.item.extension);
+            color: FileTypes.get-color(root.item.extension);
+            font-size: Theme.font-small;
+            vertical-alignment: center;
+        }
+
+        // File name
+        Text {
+            text: root.item.name;
+            color: Theme.text-primary;
+            font-size: Theme.font-small;
+            vertical-alignment: center;
+            horizontal-stretch: 1;
+        }
+
+        // Status indicator
+        Text {
+            text: root.item.status == DependencyStatus.Found ? "✓" :
+                  root.item.status == DependencyStatus.Missing ? "✗" :
+                  root.item.status == DependencyStatus.SystemDll ? "🔧" : "⏳";
+            color: root.item.status == DependencyStatus.Found ? Theme.found :
+                   root.item.status == DependencyStatus.Missing ? Theme.missing :
+                   root.item.status == DependencyStatus.SystemDll ? Theme.system-dll : Theme.delayed;
+            font-size: Theme.font-caption;
+            vertical-alignment: center;
+        }
+    }
+}
+
+export component DependencyTree inherits ModernContainer {
+    in property <[DependencyItem]> dependencies: [];
+    in property <string> selected-item: "";
+    in property <bool> is-loading: false;
+    
+    callback item-selected(string);
+    callback item-expanded(string);
+    
+    VerticalLayout {
+        padding: Theme.spacing-small;
+        spacing: Theme.spacing-tiny;
+
+        // Header
+        Text {
+            text: "Module Dependency Tree";
+            font-size: Theme.font-medium;
+            color: Theme.text-primary;
+            font-weight: 600;
+        }
+
+        Rectangle {
+            height: 1px;
+            background: Theme.separator;
+        }
+        
+        // Content area
+        if root.is-loading : Rectangle {
+            height: 200px;
+            
+            Text {
+                text: "Analyzing...";
+                color: Theme.text-secondary;
+                font-size: Theme.font-body;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+        
+        if !root.is-loading && root.dependencies.length == 0 : Rectangle {
+            height: 200px;
+            
+            Text {
+                text: "No dependencies to display";
+                color: Theme.text-muted;
+                font-size: Theme.font-body;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+        
+        if !root.is-loading && root.dependencies.length > 0 : ScrollView {
+            height: 100%;
+            
+            VerticalLayout {
+                spacing: 1px;
+                
+                for item[index] in root.dependencies : DependencyTreeItem {
+                    item: item;
+                    is-selected: item.name == root.selected-item;
+                    
+                    item-clicked(name) => {
+                        root.item-selected(name);
+                    }
+                    
+                    toggle-expanded(name) => {
+                        root.item-expanded(name);
+                    }
+                }
+            }
+        }
+    }
+}

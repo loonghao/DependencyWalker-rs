@@ -1,0 +1,405 @@
+// Module details panel component for DependencyWalker RS
+import { Theme, FileTypes, ModernContainer } from "../styles/theme.slint";
+import { DependencyStatus } from "dependency_tree.slint";
+import { ScrollView } from "std-widgets.slint";
+
+// Module information structure
+export struct ModuleInfo {
+    name: string,
+    status: DependencyStatus,
+    path: string,
+    extension: string,
+    file-size: string,
+    version: string,
+    description: string,
+    dependencies-count: int,
+    exports-count: int,
+    imports-count: int,
+    // Additional PE information
+    architecture: string,
+    pe-type: string,
+    entry-point: string,
+    image-base: string,
+    subsystem: string,
+    checksum: string,
+    timestamp: string,
+}
+
+export component ModuleDetails inherits ModernContainer {
+    in property <ModuleInfo> module-info;
+    in property <bool> has-selection: false;
+    
+    VerticalLayout {
+        padding: Theme.spacing-tiny;
+        spacing: 2px;
+        
+        // Header
+        Text {
+            text: "Module Details";
+            font-size: Theme.font-medium;
+            color: Theme.text-primary;
+            font-weight: 600;
+        }
+        
+        Rectangle {
+            height: 1px;
+            background: Theme.separator;
+        }
+        
+        // Content area
+        if !root.has-selection : Rectangle {
+            height: 200px;
+            
+            Text {
+                text: "Select a module to view details";
+                color: Theme.text-muted;
+                font-size: Theme.font-body;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+        
+        if root.has-selection : ScrollView {
+            height: 100%;
+            
+            VerticalLayout {
+                spacing: 4px;
+                
+                // Module name and icon
+                HorizontalLayout {
+                    spacing: Theme.spacing-small;
+                    alignment: start;
+                    
+                    Text {
+                        text: FileTypes.get-icon(root.module-info.extension);
+                        color: FileTypes.get-color(root.module-info.extension);
+                        font-size: Theme.font-title;
+                        vertical-alignment: center;
+                    }
+                    
+                    VerticalLayout {
+                        spacing: 1px;
+                        
+                        Text {
+                            text: root.module-info.name;
+                            font-size: Theme.font-small;
+                            color: Theme.text-primary;
+                            font-weight: 600;
+                            wrap: word-wrap;
+                        }
+
+                        Text {
+                            text: FileTypes.get-description(root.module-info.extension);
+                            font-size: 10px;
+                            color: Theme.text-secondary;
+                        }
+                    }
+                }
+                
+                // Status indicator
+                HorizontalLayout {
+                    spacing: Theme.spacing-small;
+                    alignment: start;
+                    
+                    Text {
+                        text: "Status:";
+                        font-size: Theme.font-small;
+                        color: Theme.text-secondary;
+                        width: 60px;
+                    }
+                    
+                    HorizontalLayout {
+                        spacing: Theme.spacing-small;
+                        
+                        Text {
+                            text: root.module-info.status == DependencyStatus.Found ? "✓" :
+                                  root.module-info.status == DependencyStatus.Missing ? "✗" :
+                                  root.module-info.status == DependencyStatus.SystemDll ? "🔧" : "⏳";
+                            color: root.module-info.status == DependencyStatus.Found ? Theme.found :
+                                   root.module-info.status == DependencyStatus.Missing ? Theme.missing :
+                                   root.module-info.status == DependencyStatus.SystemDll ? Theme.system-dll : Theme.delayed;
+                            font-size: Theme.font-small;
+                        }
+
+                        Text {
+                            text: root.module-info.status == DependencyStatus.Found ? "Found" :
+                                  root.module-info.status == DependencyStatus.Missing ? "Missing" :
+                                  root.module-info.status == DependencyStatus.SystemDll ? "System DLL" : "Delayed Load";
+                            color: root.module-info.status == DependencyStatus.Found ? Theme.found :
+                                   root.module-info.status == DependencyStatus.Missing ? Theme.missing :
+                                   root.module-info.status == DependencyStatus.SystemDll ? Theme.system-dll : Theme.delayed;
+                            font-size: Theme.font-small;
+                        }
+                    }
+                }
+                
+                // File path
+                if root.module-info.path != "" : VerticalLayout {
+                    spacing: Theme.spacing-tiny;
+                    
+                    Text {
+                        text: "Path:";
+                        font-size: Theme.font-small;
+                        color: Theme.text-secondary;
+                    }
+
+                    Text {
+                        text: root.module-info.path;
+                        font-size: Theme.font-caption;
+                        color: Theme.text-primary;
+                        wrap: word-wrap;
+                    }
+                }
+                
+                // File information
+                VerticalLayout {
+                    spacing: Theme.spacing-tiny;
+
+                    Text {
+                        text: "File Information:";
+                        font-size: Theme.font-caption;
+                        color: Theme.text-secondary;
+                        font-weight: 600;
+                    }
+
+                    // File size
+                    if root.module-info.file-size != "" : HorizontalLayout {
+                        spacing: Theme.spacing-tiny;
+
+                        Text {
+                            text: "Size:";
+                            font-size: Theme.font-caption;
+                            color: Theme.text-muted;
+                            width: 40px;
+                        }
+
+                        Text {
+                            text: root.module-info.file-size;
+                            font-size: Theme.font-caption;
+                            color: Theme.text-primary;
+                        }
+                    }
+
+                    // Version
+                    if root.module-info.version != "" : HorizontalLayout {
+                        spacing: Theme.spacing-tiny;
+
+                        Text {
+                            text: "Version:";
+                            font-size: Theme.font-caption;
+                            color: Theme.text-muted;
+                            width: 40px;
+                        }
+
+                        Text {
+                            text: root.module-info.version;
+                            font-size: Theme.font-caption;
+                            color: Theme.text-primary;
+                        }
+                    }
+
+                    // Architecture
+                    if root.module-info.architecture != "" : HorizontalLayout {
+                        spacing: Theme.spacing-tiny;
+
+                        Text {
+                            text: "Arch:";
+                            font-size: Theme.font-caption;
+                            color: Theme.text-muted;
+                            width: 50px;
+                        }
+
+                        Text {
+                            text: root.module-info.architecture;
+                            font-size: Theme.font-caption;
+                            color: Theme.text-primary;
+                        }
+                    }
+
+                    // PE Type
+                    if root.module-info.pe-type != "" : HorizontalLayout {
+                        spacing: Theme.spacing-tiny;
+
+                        Text {
+                            text: "Type:";
+                            font-size: Theme.font-caption;
+                            color: Theme.text-muted;
+                            width: 50px;
+                        }
+
+                        Text {
+                            text: root.module-info.pe-type;
+                            font-size: Theme.font-caption;
+                            color: Theme.text-primary;
+                        }
+                    }
+
+                    // Subsystem
+                    if root.module-info.subsystem != "" : HorizontalLayout {
+                        spacing: Theme.spacing-tiny;
+
+                        Text {
+                            text: "System:";
+                            font-size: Theme.font-caption;
+                            color: Theme.text-muted;
+                            width: 50px;
+                        }
+
+                        Text {
+                            text: root.module-info.subsystem;
+                            font-size: Theme.font-caption;
+                            color: Theme.text-primary;
+                        }
+                    }
+                }
+                
+                // PE Details
+                if root.module-info.entry-point != "" || root.module-info.image-base != "" : VerticalLayout {
+                    spacing: Theme.spacing-tiny;
+
+                    Text {
+                        text: "PE Details:";
+                        font-size: Theme.font-small;
+                        color: Theme.text-secondary;
+                        font-weight: 600;
+                    }
+
+                    // Entry Point
+                    if root.module-info.entry-point != "" : HorizontalLayout {
+                        spacing: Theme.spacing-tiny;
+
+                        Text {
+                            text: "Entry:";
+                            font-size: Theme.font-caption;
+                            color: Theme.text-muted;
+                            width: 50px;
+                        }
+
+                        Text {
+                            text: root.module-info.entry-point;
+                            font-size: Theme.font-caption;
+                            color: Theme.text-primary;
+                        }
+                    }
+
+                    // Image Base
+                    if root.module-info.image-base != "" : HorizontalLayout {
+                        spacing: Theme.spacing-tiny;
+
+                        Text {
+                            text: "Base:";
+                            font-size: Theme.font-caption;
+                            color: Theme.text-muted;
+                            width: 50px;
+                        }
+
+                        Text {
+                            text: root.module-info.image-base;
+                            font-size: Theme.font-caption;
+                            color: Theme.text-primary;
+                        }
+                    }
+
+                    // Checksum
+                    if root.module-info.checksum != "" : HorizontalLayout {
+                        spacing: Theme.spacing-tiny;
+
+                        Text {
+                            text: "CRC:";
+                            font-size: Theme.font-caption;
+                            color: Theme.text-muted;
+                            width: 50px;
+                        }
+
+                        Text {
+                            text: root.module-info.checksum;
+                            font-size: Theme.font-caption;
+                            color: Theme.text-primary;
+                        }
+                    }
+
+                    // Timestamp
+                    if root.module-info.timestamp != "" : HorizontalLayout {
+                        spacing: Theme.spacing-tiny;
+
+                        Text {
+                            text: "Time:";
+                            font-size: Theme.font-caption;
+                            color: Theme.text-muted;
+                            width: 50px;
+                        }
+
+                        Text {
+                            text: root.module-info.timestamp;
+                            font-size: Theme.font-caption;
+                            color: Theme.text-primary;
+                        }
+                    }
+                }
+
+                // Statistics
+                VerticalLayout {
+                    spacing: Theme.spacing-tiny;
+
+                    Text {
+                        text: "Statistics:";
+                        font-size: Theme.font-small;
+                        color: Theme.text-secondary;
+                        font-weight: 600;
+                    }
+
+                    HorizontalLayout {
+                        spacing: Theme.spacing-tiny;
+
+                        Text {
+                            text: "Deps:";
+                            font-size: Theme.font-caption;
+                            color: Theme.text-muted;
+                            width: 50px;
+                        }
+
+                        Text {
+                            text: root.module-info.dependencies-count;
+                            font-size: Theme.font-caption;
+                            color: Theme.text-primary;
+                        }
+                    }
+
+                    HorizontalLayout {
+                        spacing: Theme.spacing-tiny;
+
+                        Text {
+                            text: "Exp:";
+                            font-size: Theme.font-caption;
+                            color: Theme.text-muted;
+                            width: 50px;
+                        }
+
+                        Text {
+                            text: root.module-info.exports-count;
+                            font-size: Theme.font-caption;
+                            color: Theme.text-primary;
+                        }
+                    }
+
+                    HorizontalLayout {
+                        spacing: Theme.spacing-tiny;
+
+                        Text {
+                            text: "Imp:";
+                            font-size: Theme.font-caption;
+                            color: Theme.text-muted;
+                            width: 50px;
+                        }
+
+                        Text {
+                            text: root.module-info.imports-count;
+                            font-size: Theme.font-caption;
+                            color: Theme.text-primary;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

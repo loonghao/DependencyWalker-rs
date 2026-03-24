@@ -1,0 +1,32 @@
+# <type>[optional scope]: <description>
+#
+# [optional body]
+#
+# [optional footer(s)]
+
+# --- CONVENTIONAL COMMIT TYPES ---
+# feat:     A new feature (minor version bump)
+# fix:      A bug fix (patch version bump)
+# docs:     Documentation only changes
+# style:    Changes that do not affect the meaning of the code
+# refactor: A code change that neither fixes a bug nor adds a feature
+# perf:     A code change that improves performance
+# test:     Adding missing tests or correcting existing tests
+# build:    Changes that affect the build system or external dependencies
+# ci:       Changes to our CI configuration files and scripts
+# chore:    Other changes that don't modify src or test files
+# revert:   Reverts a previous commit
+
+# --- BREAKING CHANGES ---
+# Add "!" after type/scope for breaking changes: feat!: or fix!:
+# Or add "BREAKING CHANGE:" in footer for major version bump
+
+# --- EXAMPLES ---
+# feat: add drag and drop support for PE files
+# fix: resolve memory leak in dependency analysis
+# feat!: change CLI argument structure (BREAKING CHANGE)
+# docs: update installation instructions
+# ci: add automated version bumping with release-please
+
+# --- SCOPES (optional) ---
+# gui, cli, core, parser, resolver, deps, ci, docs, test

@@ -1,0 +1,223 @@
+// Main UI file for DependencyWalker RS - Slint Implementation
+// Modern Windows & Maya Plugin Dependency Analyzer
+
+import { Theme, ModernButton, ModernContainer } from "styles/theme.slint";
+import { WelcomeScreen } from "components/welcome.slint";
+import { DependencyTree, DependencyItem, DependencyStatus } from "components/dependency_tree.slint";
+import { ModuleDetails, ModuleInfo } from "components/module_details.slint";
+import { FunctionsList, FunctionInfo } from "components/functions_list.slint";
+
+// Application state
+export enum AppState {
+    Welcome,
+    Analysis,
+}
+
+export component MainWindow inherits Window {
+    // Window properties
+    title: "DependencyWalker RS";
+    preferred-width: 1200px;
+    preferred-height: 800px;
+    min-width: 800px;
+    min-height: 600px;
+    background: Theme.background-primary;
+    
+    // Application state
+    in-out property <AppState> current-state: AppState.Welcome;
+    in-out property <string> current-file: "";
+    in-out property <string> error-message: "";
+    in-out property <bool> is-loading: false;
+    in-out property <bool> file-dialog-open: false;
+    in-out property <bool> is-dragging: false;
+    
+    // Data properties
+    in-out property <[DependencyItem]> dependencies: [];
+    in-out property <string> selected-dependency: "";
+    in-out property <ModuleInfo> module-info;
+    in-out property <[FunctionInfo]> import-functions: [];
+    in-out property <[FunctionInfo]> export-functions: [];
+    in-out property <string> selected-function: "";
+    
+    // UI state
+    in-out property <bool> show-imports: true;
+    in-out property <bool> show-exports: true;
+    
+    // Callbacks for Rust integration
+    callback file-selected(string);
+    callback browse-files();
+    callback dependency-selected(string);
+    callback dependency-expanded(string);
+    callback function-selected(string);
+    callback refresh-analysis();
+    callback expand-all();
+    callback collapse-all();
+    callback toggle-theme();
+    
+    VerticalLayout {
+        // Menu bar
+        Rectangle {
+            height: 32px;
+            background: Theme.background-secondary;
+            border-width: 0px;
+            border-color: Theme.border;
+            
+            HorizontalLayout {
+                padding: Theme.spacing-small;
+                spacing: Theme.spacing-small;
+                alignment: space-between;
+
+                // Left side: App title
+                Text {
+                    text: "DependencyWalker RS";
+                    color: Theme.text-primary;
+                    font-size: Theme.font-small;
+                    font-weight: 600;
+                    vertical-alignment: center;
+                }
+            }
+        }
+        
+        // Toolbar (only shown in analysis mode)
+        if root.current-state == AppState.Analysis : Rectangle {
+            height: 40px;
+            background: Theme.background-secondary;
+            border-width: 0px;
+            border-color: Theme.border;
+            
+            HorizontalLayout {
+                padding: Theme.spacing-small;
+                spacing: Theme.spacing-small;
+                alignment: start;
+                
+                // Open button
+                ModernButton {
+                    text: "📂 Open";
+                    width: 70px;
+                    height: 24px;
+                    clicked => { root.browse-files(); }
+                }
+
+                // Refresh button
+                ModernButton {
+                    text: "🔄 Refresh";
+                    width: 80px;
+                    height: 24px;
+                    clicked => { root.refresh-analysis(); }
+                }
+
+                Rectangle { width: 1px; height: 20px; background: Theme.separator; }
+
+                // Expand All button
+                ModernButton {
+                    text: "⬇ Expand";
+                    width: 75px;
+                    height: 24px;
+                    clicked => { root.expand-all(); }
+                }
+
+                // Collapse All button
+                ModernButton {
+                    text: "⬆ Collapse";
+                    width: 80px;
+                    height: 24px;
+                    clicked => { root.collapse-all(); }
+                }
+            }
+        }
+        
+        // Main content area
+        Rectangle {
+            background: Theme.background-primary;
+            
+            if root.current-state == AppState.Welcome : WelcomeScreen {
+                error-message: root.error-message;
+                file-dialog-open: root.file-dialog-open;
+                is-dragging: root.is-dragging;
+
+                file-dropped(path) => {
+                    root.is-dragging = false;
+                    root.file-selected(path);
+                }
+
+                browse-files => {
+                    root.file-dialog-open = true;
+                    root.browse-files();
+                }
+            }
+            
+            if root.current-state == AppState.Analysis : VerticalLayout {
+                spacing: Theme.spacing-tiny;
+                padding: Theme.spacing-tiny;
+                
+                // File info bar - more compact
+                Rectangle {
+                    height: 24px;
+                    background: Theme.background-secondary;
+                    border-radius: Theme.radius-small;
+
+                    HorizontalLayout {
+                        padding: Theme.spacing-small;
+                        alignment: start;
+
+                        Text {
+                            text: "File: " + root.current-file;
+                            color: Theme.text-primary;
+                            font-size: Theme.font-small;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+                
+                // Three-panel layout - optimized proportions
+                HorizontalLayout {
+                    spacing: Theme.spacing-tiny;
+
+                    // Left panel: Dependency tree - wider for better tree view
+                    DependencyTree {
+                        width: 50%;
+                        dependencies: root.dependencies;
+                        selected-item: root.selected-dependency;
+                        is-loading: root.is-loading;
+
+                        item-selected(name) => {
+                            root.dependency-selected(name);
+                        }
+
+                        item-expanded(name) => {
+                            root.dependency-expanded(name);
+                        }
+                    }
+
+                    // Right panel: Module details - more compact
+                    ModuleDetails {
+                        width: 50%;
+                        module-info: root.module-info;
+                        has-selection: root.selected-dependency != "";
+                    }
+                }
+                
+                // Bottom panel: Functions list - more compact
+                FunctionsList {
+                    height: 35%;
+                    import-functions: root.import-functions;
+                    export-functions: root.export-functions;
+                    selected-function: root.selected-function;
+                    show-imports: root.show-imports;
+                    show-exports: root.show-exports;
+
+                    function-selected(name) => {
+                        root.function-selected(name);
+                    }
+
+                    toggle-imports => {
+                        root.show-imports = !root.show-imports;
+                    }
+
+                    toggle-exports => {
+                        root.show-exports = !root.show-exports;
+                    }
+                }
+            }
+        }
+    }
+}

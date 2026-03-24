@@ -1,0 +1,7 @@
+# Target-specific configurations
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-cpu=native"]
+
+# Use MSVC by default for all builds
+[build]
+target = "x86_64-pc-windows-msvc"

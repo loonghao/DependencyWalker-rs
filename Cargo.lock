@@ -1443,7 +1443,7 @@ checksum = "7046468a81e6a002061c01e6a7c83139daf91b11c30e66795b13217c2d885c8b"
 
 [[package]]
 name = "dependencywalker_rs"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "clap",

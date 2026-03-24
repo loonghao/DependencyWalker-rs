@@ -1,6 +1,6 @@
 [package]
 name = "dependencywalker_rs"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["DependencyWalker RS Team"]
 description = "A modern Windows Dependency Walker implemented in Rust"
